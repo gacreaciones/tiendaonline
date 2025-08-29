@@ -536,84 +536,89 @@ def init_db():
     Inicializa la base de datos con datos de ejemplo
     Crea las tablas y añade datos básicos para pruebas
     """
-    with app.app_context():
-        # Crear todas las tablas
-        db.create_all()
-        
-        # Verificar si ya existen datos para evitar duplicados
-        if Usuario.query.first():
-            print("La base de datos ya contiene datos")
-            return
-        
-        # Crear usuario administrador por defecto
-        admin = Usuario(username='admin', password=generate_password_hash('admin123'))
-        db.session.add(admin)
-        
-        # Crear categorías por defecto
-        categorias_default = [
-            Categoria(nombre='Alimentos', descripcion='Productos alimenticios'),
-            Categoria(nombre='Bebidas', descripcion='Bebidas y refrescos'),
-            Categoria(nombre='Limpieza', descripcion='Productos de limpieza'),
-            Categoria(nombre='Cuidado Personal', descripcion='Productos de higiene personal'),
-            Categoria(nombre='Hogar', descripcion='Artículos para el hogar'),
-            Categoria(nombre='Personalizado', descripcion='Productos personalizados a medida')
-        ]
-        
-        for categoria in categorias_default:
-            existing = Categoria.query.filter_by(nombre=categoria.nombre).first()
-            if not existing:
-                db.session.add(categoria)
-        
-        db.session.commit()
-        
-        # Obtener IDs de categorías para productos
-        cat_alimentos = Categoria.query.filter_by(nombre='Alimentos').first()
-        cat_bebidas = Categoria.query.filter_by(nombre='Bebidas').first()
-        cat_limpieza = Categoria.query.filter_by(nombre='Limpieza').first()
-        cat_personalizado = Categoria.query.filter_by(nombre='Personalizado').first()
-        
-        productos_ejemplo = [
-            # Custom product - always first
-            Producto(
-                nombre='Producto Personalizado - Solicita tu Cotización',
-                precio=0.0,  # Price 0 for custom products
-                cantidad=999999,  # Unlimited stock
-                categoria_id=cat_personalizado.id if cat_personalizado else None,
-                imagen_url='/placeholder.svg?height=200&width=200',
-                descripcion='Diseñamos productos únicos según tus especificaciones. Comparte tus ideas y te ayudamos a crear exactamente lo que necesitas.'
-            ),
-            # Regular products
-            Producto(nombre='Arroz', precio=2.50, cantidad=100, categoria_id=cat_alimentos.id if cat_alimentos else None),
-            Producto(nombre='Frijoles', precio=3.00, cantidad=80, categoria_id=cat_alimentos.id if cat_alimentos else None),
-            Producto(nombre='Aceite', precio=4.50, cantidad=50, categoria_id=cat_alimentos.id if cat_alimentos else None),
-            Producto(nombre='Coca Cola', precio=1.50, cantidad=200, categoria_id=cat_bebidas.id if cat_bebidas else None),
-            Producto(nombre='Agua', precio=0.75, cantidad=300, categoria_id=cat_bebidas.id if cat_bebidas else None),
-            Producto(nombre='Detergente', precio=5.00, cantidad=40, categoria_id=cat_limpieza.id if cat_limpieza else None)
-        ]
-        
-        for producto in productos_ejemplo:
-            existing = Producto.query.filter_by(nombre=producto.nombre).first()
-            if not existing:
-                db.session.add(producto)
-        
-        # Crear información de empresa por defecto
-        empresa = Empresa(
-            nombre='Mi Tienda Online',
-            direccion='Dirección de ejemplo',
-            telefono='+58 123 456 7890',
-            rif='J-12345678-9'
-        )
-        db.session.add(empresa)
-        
-        # Crear configuración por defecto
-        config = Configuracion(
-            hero_titulo='Bienvenido a Nuestra Tienda',
-            hero_mensaje='Descubre nuestra amplia selección de productos de calidad al mejor precio. Compra fácil, rápido y seguro.'
-        )
-        db.session.add(config)
-        
-        db.session.commit()
-        print("Base de datos inicializada con datos de ejemplo")
+    try:
+        with app.app_context():
+            # Crear todas las tablas
+            db.create_all()
+            
+            # Verificar si ya existen datos para evitar duplicados
+            if Usuario.query.first():
+                return "La base de datos ya contiene datos", 200
+            
+            # Crear usuario administrador por defecto
+            hashed_password = generate_password_hash('admin123', method='pbkdf2:sha256', salt_length=8)
+            admin = Usuario(username='admin', password=hashed_password, es_admin=True)
+            db.session.add(admin)
+            
+            # Crear categorías por defecto
+            categorias_default = [
+                Categoria(nombre='Alimentos', descripcion='Productos alimenticios'),
+                Categoria(nombre='Bebidas', descripcion='Bebidas y refrescos'),
+                Categoria(nombre='Limpieza', descripcion='Productos de limpieza'),
+                Categoria(nombre='Cuidado Personal', descripcion='Productos de higiene personal'),
+                Categoria(nombre='Hogar', descripcion='Artículos para el hogar'),
+                Categoria(nombre='Personalizado', descripcion='Productos personalizados a medida')
+            ]
+            
+            for categoria in categorias_default:
+                existing = Categoria.query.filter_by(nombre=categoria.nombre).first()
+                if not existing:
+                    db.session.add(categoria)
+            
+            db.session.commit()
+            
+            # Obtener IDs de categorías para productos
+            cat_alimentos = Categoria.query.filter_by(nombre='Alimentos').first()
+            cat_bebidas = Categoria.query.filter_by(nombre='Bebidas').first()
+            cat_limpieza = Categoria.query.filter_by(nombre='Limpieza').first()
+            cat_personalizado = Categoria.query.filter_by(nombre='Personalizado').first()
+            
+            productos_ejemplo = [
+                # Custom product - always first
+                Producto(
+                    nombre='Producto Personalizado - Solicita tu Cotización',
+                    precio=0.0,  # Price 0 for custom products
+                    cantidad=999999,  # Unlimited stock
+                    categoria_id=cat_personalizado.id if cat_personalizado else None,
+                    imagen_url='/placeholder.svg?height=200&width=200',
+                    descripcion='Diseñamos productos únicos según tus especificaciones. Comparte tus ideas y te ayudamos a crear exactamente lo que necesitas.'
+                ),
+                # Regular products
+                Producto(nombre='Arroz', precio=2.50, cantidad=100, categoria_id=cat_alimentos.id if cat_alimentos else None),
+                Producto(nombre='Frijoles', precio=3.00, cantidad=80, categoria_id=cat_alimentos.id if cat_alimentos else None),
+                Producto(nombre='Aceite', precio=4.50, cantidad=50, categoria_id=cat_alimentos.id if cat_alimentos else None),
+                Producto(nombre='Coca Cola', precio=1.50, cantidad=200, categoria_id=cat_bebidas.id if cat_bebidas else None),
+                Producto(nombre='Agua', precio=0.75, cantidad=300, categoria_id=cat_bebidas.id if cat_bebidas else None),
+                Producto(nombre='Detergente', precio=5.00, cantidad=40, categoria_id=cat_limpieza.id if cat_limpieza else None)
+            ]
+            
+            for producto in productos_ejemplo:
+                existing = Producto.query.filter_by(nombre=producto.nombre).first()
+                if not existing:
+                    db.session.add(producto)
+            
+            # Crear información de empresa por defecto
+            empresa = Empresa(
+                nombre='Mi Tienda Online',
+                direccion='Dirección de ejemplo',
+                telefono='+58 123 456 7890',
+                rif='J-12345678-9'
+            )
+            db.session.add(empresa)
+            
+            # Crear configuración por defecto
+            config = Configuracion(
+                hero_titulo='Bienvenido a Nuestra Tienda',
+                hero_mensaje='Descubre nuestra amplia selección de productos de calidad al mejor precio. Compra fácil, rápido y seguro.'
+            )
+            db.session.add(config)
+            
+            db.session.commit()
+            
+            return "Base de datos inicializada con datos de ejemplo", 200
+            
+    except Exception as e:
+        return f"Error al inicializar la base de datos: {str(e)}", 500
 
 @app.context_processor
 def inject_global_data():
