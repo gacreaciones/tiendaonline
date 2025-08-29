@@ -77,6 +77,12 @@ class EmptyForm(FlaskForm):
     """Formulario vacío para operaciones CSRF"""
     pass
 
+class EmptyForm(FlaskForm):
+    """Formulario vacío para operaciones CSRF"""
+    # Añadir campo CSRF
+    class Meta:
+        csrf = True
+
 class ConsultaDeudaForm(FlaskForm):
     """Formulario para consultar deudas por nombre de cliente"""
     nombre = StringField('Nombre', validators=[DataRequired()])
@@ -1146,23 +1152,35 @@ def eliminar_categoria(id):
         # Verificar si hay productos asociados a esta categoría
         productos_asociados = Producto.query.filter_by(categoria_id=id).count()
         if productos_asociados > 0:
-            return jsonify({
-                'success': False,
-                'message': f'No se puede eliminar la categoría porque tiene {productos_asociados} productos asociados'
-            }), 400
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False,
+                    'message': f'No se puede eliminar la categoría porque tiene {productos_asociados} productos asociados'
+                }), 400
+            else:
+                flash(f'No se puede eliminar la categoría porque tiene {productos_asociados} productos asociados', 'danger')
+                return redirect(url_for('listar_categorias'))
         
         db.session.delete(categoria)
         db.session.commit()
         
-        return jsonify({'success': True})
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True})
+        else:
+            flash('Categoría eliminada correctamente', 'success')
+            return redirect(url_for('listar_categorias'))
     
     except Exception as e:
         print(f"Error al eliminar categoría: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Error al eliminar la categoría'
-        }), 500
-
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'message': 'Error al eliminar la categoría'
+            }), 500
+        else:
+            flash('Error al eliminar la categoría', 'danger')
+            return redirect(url_for('listar_categorias'))
+        
 @app.route('/api/categorias')
 def api_categorias():
     """API para obtener todas las categorías activas"""

@@ -4,6 +4,11 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Formulario oculto para obtener el token CSRF -->
+    <div style="display: none;">
+        {{ form.hidden_tag() }}
+    </div>
+    
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="page-title mb-0">Gestión de Categorías</h2>
         <button class="btn btn-primary" onclick="openCategoryModal()">
@@ -68,13 +73,9 @@
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     {% if categoria.productos|length == 0 %}
-                                    <form method="POST" action="{{ url_for('eliminar_categoria', id=categoria.id) }}" class="d-inline" 
-                                          onsubmit="return confirm('¿Estás seguro de eliminar esta categoría?')">
-                                        {{ form.hidden_tag() }}
-                                        <button type="submit" class="btn btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <button class="btn btn-outline-danger" onclick="confirmDelete({{ categoria.id }}, '{{ categoria.nombre }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                     {% else %}
                                     <button class="btn btn-outline-danger" disabled title="No se puede eliminar: tiene productos asociados">
                                         <i class="bi bi-trash"></i>
@@ -142,7 +143,33 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de eliminar la categoría "<span id="categoryNameToDelete"></span>"?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteButton">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Variables globales
+let isEditingCategory = false;
+let editingCategoryId = null;
+let categoryToDelete = null;
+
+// Funciones de búsqueda
 function buscarCategorias() {
     const query = document.getElementById('searchCategoryInput').value.toLowerCase().trim();
     const rows = document.querySelectorAll('.category-row');
@@ -163,9 +190,7 @@ function buscarCategorias() {
     document.getElementById('categoryCount').textContent = `${visibleCount} categorías encontradas`;
 }
 
-let isEditingCategory = false;
-let editingCategoryId = null;
-
+// Funciones de modal de categoría
 function openCategoryModal() {
     isEditingCategory = false;
     editingCategoryId = null;
@@ -189,6 +214,47 @@ function editCategory(id, nombre, descripcion, activo) {
     new bootstrap.Modal(document.getElementById('categoryModal')).show();
 }
 
+// Funciones de eliminación
+function confirmDelete(id, nombre) {
+    categoryToDelete = id;
+    document.getElementById('categoryNameToDelete').textContent = nombre;
+    new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+}
+
+function deleteCategory(id) {
+    // Obtener el token CSRF del formulario
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    
+    fetch(`/eliminar_categoria/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'csrf_token': csrfToken
+        })
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            return response.json().then(data => {
+                if (data.success) {
+                    // Recargar la página para ver los cambios
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error al eliminar la categoría');
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al eliminar la categoría');
+    });
+}
+
+// Event Listeners
 document.getElementById('categoryForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -212,6 +278,14 @@ document.getElementById('categoryForm').addEventListener('submit', function(e) {
         console.error('Error:', error);
         alert('Error al guardar la categoría');
     });
+});
+
+document.getElementById('confirmDeleteButton').addEventListener('click', function() {
+    if (categoryToDelete) {
+        deleteCategory(categoryToDelete);
+        // Cerrar el modal
+        bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+    }
 });
 
 // Inicializar búsqueda al cargar la página
