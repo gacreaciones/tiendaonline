@@ -58,7 +58,7 @@
                     </div>
 
                     <!-- Barra de búsqueda -->
-                    <div class="input-group flex-nowrap">
+                    <div class="input-group" style="width: 250px;">
                         <input type="text" id="searchInput" class="form-control" placeholder="Buscar productos..." 
                             onkeyup="buscarProductos()"
                             style="border: 2px solid var(--border-color);">
@@ -496,25 +496,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // Función para buscar productos
 function buscarProductos() {
     const query = document.getElementById('searchInput').value.trim();
+    const category = '{{ categoria_actual }}' === 'todos' ? '' : '{{ categoria_actual }}';
     
-    if (query.length < 2) {
-        mostrarTodosLosProductos();
-        return;
-    }
-    
-    fetch(`/buscar_productos?q=${encodeURIComponent(query)}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error en la búsqueda');
-            }
-            return response.json();
-        })
+    fetch(`/buscar_productos?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`)
+        .then(response => response.json())
         .then(productos => {
             actualizarVistaProductos(productos);
         })
         .catch(error => {
             console.error('Error en la búsqueda:', error);
-            mostrarTodosLosProductos();
         });
 }
 
@@ -586,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (dropdownToggle && dropdownMenu) {
         dropdownToggle.addEventListener('show.bs.dropdown', function () {
-            dropdownMenu.style.zIndex = '1001';
+            dropdownMenu.style.zIndex = '1061';
             dropdownMenu.style.position = 'absolute';
         });
         

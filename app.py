@@ -149,7 +149,8 @@ class ConfiguracionForm(FlaskForm):
         ('coral', 'Coral Vibrante'),
         ('blue', 'Azul'),
         ('green', 'Verde'),
-        ('gold', 'Dorado Premium')
+        ('gold', 'Dorado Premium'),
+        ('wine', 'Vinotinto'),
     ])
     submit = SubmitField('Guardar Configuración')
 
@@ -1340,16 +1341,15 @@ def eliminar_producto(id):
 def buscar_productos():
     """
     API para buscar productos por nombre, categoría o descripción
-    Usado para autocompletado y filtros
     """
     query = request.args.get('q', '').strip().lower()
     
     if query:
-        # Búsqueda case-insensitive
-        productos = Producto.query.filter(
-            Producto.nombre.ilike(f'%{query}%') | 
-            Producto.categoria.ilike(f'%{query}%') |
-            Producto.descripcion.ilike(f'%{query}%')
+        # Búsqueda case-insensitive con join a categoría
+        productos = Producto.query.join(Categoria).filter(
+            (Producto.nombre.ilike(f'%{query}%')) | 
+            (Categoria.nombre.ilike(f'%{query}%')) |
+            (Producto.descripcion.ilike(f'%{query}%'))
         ).all()
     else:
         productos = Producto.query.all()
@@ -1359,7 +1359,7 @@ def buscar_productos():
         'nombre': p.nombre,
         'precio': p.precio,
         'cantidad': p.cantidad,
-        'categoria': p.categoria,
+        'categoria': p.categoria.nombre if p.categoria else None,
         'imagen_url': p.imagen_url,
         'descripcion': p.descripcion
     } for p in productos])
