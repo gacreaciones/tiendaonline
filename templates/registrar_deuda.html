@@ -1,0 +1,1211 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Deuda - Sistema de Gestión{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 1.5rem;
+        position: relative;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+        z-index: 2;
+    }
+    
+    .step.active .step-number {
+        background: var(--primary-gradient);
+        color: white;
+        transform: scale(1.1);
+    }
+    
+    .step.completed .step-number {
+        background: var(--success-gradient);
+        color: white;
+    }
+    
+    .step-label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .step.active .step-label {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    
+    .step:not(:last-child):after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        right: -50%;
+        width: 100%;
+        height: 2px;
+        background: var(--border-color);
+        z-index: 1;
+    }
+    
+    .step.completed:not(:last-child):after {
+        background: var(--success-color);
+    }
+    
+    .step-content {
+        display: none;
+    }
+    
+    .step-content.active {
+        display: block;
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .client-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .client-card:hover,
+    .client-card.selected {
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .client-card.selected {
+        background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .split-layout {
+        display: flex;
+        gap: 1.5rem;
+        height: 600px;
+    }
+    
+    .products-section {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+    
+    .cart-section {
+        flex: 1;
+        overflow-y: auto;
+        padding-left: 0.5rem;
+        border-left: 1px solid var(--border-color);
+    }
+    
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .product-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        border: none;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .product-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .product-image {
+        height: 100px;
+        object-fit: cover;
+        background: var(--bg-tertiary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+    }
+    
+    .stock-badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 1;
+        font-size: 0.75rem;
+    }
+    
+    .cart-item {
+        transition: all 0.3s ease;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+        background: var(--bg-primary);
+        margin-bottom: 0.75rem;
+    }
+    
+    .cart-item:hover {
+        background: var(--bg-secondary);
+    }
+    
+    .cart-item-image {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border-radius: var(--radius-md);
+        background: var(--bg-tertiary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .quantity-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-tertiary);
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+    }
+    
+    .quantity-btn:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .quantity-input {
+        width: 50px;
+        text-align: center;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.2rem;
+        font-size: 0.875rem;
+    }
+    
+    .search-box {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+    
+    .search-box input {
+        padding-left: 2.5rem;
+        border-radius: var(--radius-lg);
+    }
+    
+    .category-filter {
+        margin-bottom: 1rem;
+    }
+    
+    .category-badge {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .category-badge:hover,
+    .category-badge.active {
+        background: var(--primary-gradient);
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--text-muted);
+    }
+    
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+    
+    .nav-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .product-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .btn-add-product {
+        flex: 1;
+        font-size: 0.875rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .cart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .cart-total {
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .product-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        line-height: 1.2;
+    }
+    
+    .product-price {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .product-category {
+        font-size: 0.75rem;
+        background: var(--bg-tertiary);
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.75rem;
+    }
+
+    
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header text-center mb-4">
+        <h1 class="page-title">Registrar Nueva Deuda</h1>
+        <p class="page-subtitle">Sigue los pasos para registrar una deuda</p>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator mb-4" data-aos="fade-up">
+        <div class="step active" data-step="1">
+            <div class="step-number">1</div>
+            <div class="step-label">Seleccionar Cliente</div>
+        </div>
+        <div class="step" data-step="2">
+            <div class="step-number">2</div>
+            <div class="step-label">Agregar Productos</div>
+        </div>
+        <div class="step" data-step="3">
+            <div class="step-number">3</div>
+            <div class="step-label">Confirmar Deuda</div>
+        </div>
+    </div>
+
+<!-- Step 1: Seleccionar Cliente -->
+<div class="step-content active" id="step1">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-person me-2"></i> Paso 1: Seleccionar Cliente</h5>
+        </div>
+        <div class="card-body">
+            <div class="search-box">
+                <i class="bi bi-search"></i>
+                <input type="text" id="searchClient" class="form-control" placeholder="Buscar cliente por nombre, cédula o RIF...">
+            </div>
+            
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Seleccionar</th>
+                            <th>Nombre</th>
+                            <th>Cédula/RIF</th>
+                            <th>Teléfono</th>
+                            <th>Dirección</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientsList">
+                        {% for cliente in clientes %}
+                        <tr class="client-row" data-client-id="{{ cliente.id }}">
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input client-checkbox" type="radio" name="clientRadio" 
+                                           data-client-id="{{ cliente.id }}">
+                                </div>
+                            </td>
+                            <td>{{ cliente.nombre }}</td>
+                            <td>{{ cliente.cedula or cliente.rif or 'Sin identificación' }}</td>
+                            <td>{{ cliente.telefono or 'Sin teléfono' }}</td>
+                            <td>{{ cliente.direccion|truncate(30) or 'Sin dirección' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="text-center mt-3">
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal">
+                    <i class="bi bi-plus-circle me-2"></i> Nuevo Cliente
+                </button>
+            </div>
+            
+            <div class="nav-buttons">
+                <div></div>
+                <button class="btn btn-primary" id="nextToStep2" disabled>
+                    Siguiente <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Step 2: Agregar Productos -->
+    <div class="step-content" id="step2">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-cart me-2"></i> Paso 2: Agregar Productos</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info d-flex align-items-center mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <span>Cliente seleccionado: <strong id="selectedClientName"></strong></span>
+                </div>
+                
+                <div class="split-layout">
+                    <!-- Sección izquierda: Productos disponibles -->
+                    <div class="products-section">
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="searchProduct" class="form-control" placeholder="Buscar productos...">
+                        </div>
+                        
+                        <div class="category-filter">
+                            <span class="fw-medium me-2">Categorías:</span>
+                            <div class="d-flex flex-wrap">
+                                <span class="badge category-badge active" data-category="todos">
+                                    Todos
+                                </span>
+                                {% for categoria in categorias %}
+                                <span class="badge category-badge" data-category="{{ categoria }}">
+                                    {{ categoria }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <h6 class="mb-2"><i class="bi bi-grid me-2"></i> Productos Disponibles</h6>
+                        <div class="product-grid" id="productsGrid">
+                            {% if productos %}
+                                {% for producto in productos %}
+                                <div class="card product-card" data-product-id="{{ producto.id }}" data-category="{{ producto.categoria or 'sin-categoria' }}">
+                                    <div class="position-relative">
+                                        {% if producto.imagen_url %}
+                                        <img src="{{ producto.imagen_url }}" class="card-img-top product-image" alt="{{ producto.nombre }}">
+                                        {% else %}
+                                        <div class="product-image">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                        {% endif %}
+                                        <span class="badge stock-badge bg-{% if producto.cantidad > 10 %}success{% elif producto.cantidad > 0 %}warning{% else %}danger{% endif %}">
+                                            {{ producto.cantidad }}
+                                        </span>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="product-title">{{ producto.nombre }}</div>
+                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                            <span class="product-price">${{ "%.2f"|format(producto.precio) }}</span>
+                                            {% if producto.categoria %}
+                                            <span class="product-category">{{ producto.categoria.nombre }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="product-actions">
+                                            <button class="btn btn-primary btn-sm btn-add-product" data-product-id="{{ producto.id }}">
+                                                <i class="bi bi-cart-plus me-1"></i> Agregar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="empty-state">
+                                    <i class="bi bi-box-seam"></i>
+                                    <p>No hay productos disponibles</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Sección derecha: Productos en la deuda -->
+                    <div class="cart-section">
+                        <div class="cart-header">
+                            <h6 class="mb-0"><i class="bi bi-cart-check me-2"></i> Productos en la Deuda</h6>
+                            <span class="badge bg-primary" id="cartCount">0</span>
+                        </div>
+                        
+                        <div id="cartItems">
+                            <div class="empty-state">
+                                <i class="bi bi-cart-x"></i>
+                                <p>No hay productos agregados</p>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-total">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Subtotal:</span>
+                                <span id="cartSubtotal">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>IVA (16%):</span>
+                                <span id="cartIva">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total:</span>
+                                <span id="cartTotal">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-buttons">
+                    <button class="btn btn-outline-secondary" id="backToStep1">
+                        <i class="bi bi-arrow-left me-2"></i> Anterior
+                    </button>
+                    <button class="btn btn-primary" id="nextToStep3" disabled>
+                        Siguiente <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Confirmar Deuda -->
+    <div class="step-content" id="step3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i> Paso 3: Confirmar Deuda</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="bi bi-person me-2"></i> Información del Cliente</h6>
+                            </div>
+                            <div class="card-body" id="clientSummary">
+                                <!-- Se llenará con JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="bi bi-receipt me-2"></i> Resumen de la Deuda</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="cartSummary">
+                                    <!-- Se llenará con JavaScript -->
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between fw-bold fs-5">
+                                    <span>Total:</span>
+                                    <span id="totalAmount">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" id="deudaForm">
+                    {{ deuda_form.hidden_tag() }}
+                    <input type="hidden" name="cliente_id" id="clienteIdInput">
+                    
+                    <div class="nav-buttons">
+                        <button type="button" class="btn btn-outline-secondary" id="backToStep2">
+                            <i class="bi bi-arrow-left me-2"></i> Anterior
+                        </button>
+                        <button type="submit" class="btn btn-success" id="saveDeuda">
+                            <i class="bi bi-check-circle me-2"></i> Registrar Deuda
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo cliente -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i> Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="nuevoClienteForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre completo *</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cédula *</label>
+                        <input type="text" class="form-control" name="cedula" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" name="telefono">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <textarea class="form-control" name="direccion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cantidad de producto -->
+<div class="modal fade" id="cantidadProductoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Seleccionar Cantidad</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <h6 id="productoNombre"></h6>
+                    <p class="text-muted mb-0">Precio: $<span id="productoPrecio"></span></p>
+                    <p class="text-muted">Disponible: <span id="productoStock"></span> unidades</p>
+                </div>
+                
+                <div class="text-center mb-4">
+                    <div class="quantity-control d-inline-flex">
+                        <button class="quantity-btn" id="decreaseQty">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <input type="number" class="quantity-input" id="productQuantity" value="1" min="1" max="100">
+                        <button class="quantity-btn" id="increaseQty">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <p class="mb-0">Subtotal: $<span id="productSubtotal">0.00</span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="addProductToDebt">Agregar a Deuda</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+        // Inicializar cuando el DOM esté listo
+        
+document.addEventListener('DOMContentLoaded', function() {
+    let selectedClient = null;
+    let selectedProduct = null;
+    let cartItems = [];
+    let currentStep = 1;
+    let currentCategory = 'todos';
+
+    
+// Búsqueda de clientes en tabla
+$('#searchClient').on('input', function() {
+    const searchText = $(this).val().toLowerCase();
+    $('.client-row').each(function() {
+        const rowText = $(this).text().toLowerCase();
+        if (rowText.includes(searchText)) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
+});
+    
+    // Filtro por categoría
+    $('.category-badge').click(function() {
+        $('.category-badge').removeClass('active');
+        $(this).addClass('active');
+        
+        currentCategory = $(this).data('category');
+        const searchText = $('#searchProduct').val().toLowerCase();
+        filterProducts(searchText, currentCategory);
+    });
+    
+    function filterProducts(searchText, category) {
+        $('.product-card').each(function() {
+            const productText = $(this).text().toLowerCase();
+            const productCategory = $(this).data('category');
+            
+            const matchesSearch = searchText === '' || productText.includes(searchText);
+            const matchesCategory = category === 'todos' || productCategory === category;
+            
+            if (matchesSearch && matchesCategory) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+    
+// Selección de cliente
+$('.client-row').click(function() {
+    $('.client-row').removeClass('selected');
+    $(this).addClass('selected');
+    
+    // Marcar el checkbox
+    const checkbox = $(this).find('.client-checkbox');
+    checkbox.prop('checked', true);
+    
+    const clientId = $(this).data('client-id');
+    const clientName = $(this).find('td:nth-child(2)').text();
+    const clientCedula = $(this).find('td:nth-child(3)').text();
+    
+    selectedClient = {
+        id: clientId,
+        name: clientName,
+        cedula: clientCedula
+    };
+    
+    $('#nextToStep2').prop('disabled', false);
+});
+
+// También permitir selección desde el checkbox
+$('.client-checkbox').click(function(e) {
+    e.stopPropagation();
+    const row = $(this).closest('.client-row');
+    $('.client-row').removeClass('selected');
+    row.addClass('selected');
+    
+    const clientId = row.data('client-id');
+    const clientName = row.find('td:nth-child(2)').text();
+    const clientCedula = row.find('td:nth-child(3)').text();
+    
+    selectedClient = {
+        id: clientId,
+        name: clientName,
+        cedula: clientCedula
+    };
+    
+    $('#nextToStep2').prop('disabled', false);
+});
+
+
+    // Botones para agregar productos
+    $('.btn-add-product').click(function(e) {
+        e.stopPropagation();
+        const productId = $(this).data('product-id');
+        openProductModal(productId);
+    });
+    
+    // También permitir clic en la tarjeta completa
+    $('.product-card').click(function() {
+        const productId = $(this).data('product-id');
+        openProductModal(productId);
+    });
+    
+// Almacenar información de productos localmente
+const productosData = {};
+
+// Inicializar datos de productos al cargar la página
+function initializeProductsData() {
+    document.querySelectorAll('.product-card').forEach(card => {
+        const productId = card.dataset.productId;
+        const nombre = card.querySelector('.product-title').textContent;
+        const precioText = card.querySelector('.product-price').textContent;
+        const precio = parseFloat(precioText.replace('$', '')) || 0;
+        const stockBadge = card.querySelector('.stock-badge');
+        const cantidad = stockBadge ? parseInt(stockBadge.textContent) || 0 : 0;
+        const imagenElement = card.querySelector('img');
+        const imagen_url = imagenElement ? imagenElement.src : null;
+        
+        productosData[productId] = {
+            id: productId,
+            nombre: nombre,
+            precio: precio,
+            cantidad: cantidad,
+            imagen_url: imagen_url
+        };
+    });
+}
+
+function openProductModal(productId) {
+    if (productosData[productId]) {
+        selectedProduct = productosData[productId];
+        
+        $('#productoNombre').text(selectedProduct.nombre);
+        $('#productoPrecio').text(selectedProduct.precio.toFixed(2));
+        $('#productoStock').text(selectedProduct.cantidad);
+        $('#productQuantity').val(1).attr('max', selectedProduct.cantidad);
+        updateProductSubtotal();
+        
+        $('#cantidadProductoModal').modal('show');
+    } else {
+        showToast('Producto no encontrado', 'error');
+    }
+}
+    
+initializeProductsData();
+
+    // Navegación entre pasos
+    $('#nextToStep2').click(function() {
+        if (!selectedClient) return;
+        
+        $('#selectedClientName').text(selectedClient.name);
+        $('#step1').removeClass('active');
+        $('#step2').addClass('active');
+        $('.step[data-step="1"]').removeClass('active').addClass('completed');
+        $('.step[data-step="2"]').addClass('active');
+        currentStep = 2;
+    });
+    
+    $('#backToStep1').click(function() {
+        $('#step2').removeClass('active');
+        $('#step1').addClass('active');
+        $('.step[data-step="2"]').removeClass('active');
+        $('.step[data-step="1"]').addClass('active').removeClass('completed');
+        currentStep = 1;
+    });
+    
+    $('#nextToStep3').click(function() {
+        if (cartItems.length === 0) {
+            showToast('Debe agregar al menos un producto', 'error');
+            return;
+        }
+        
+        $('#step2').removeClass('active');
+        $('#step3').addClass('active');
+        $('.step[data-step="2"]').removeClass('active').addClass('completed');
+        $('.step[data-step="3"]').addClass('active');
+        currentStep = 3;
+        
+        // Actualizar resumen
+        updateClientSummary();
+        updateCartSummary();
+    });
+    
+    $('#backToStep2').click(function() {
+        $('#step3').removeClass('active');
+        $('#step2').addClass('active');
+        $('.step[data-step="3"]').removeClass('active');
+        $('.step[data-step="2"]').addClass('active').removeClass('completed');
+        currentStep = 2;
+    });
+    
+    // Control de cantidad en modal
+    $('#increaseQty').click(function() {
+        const currentVal = parseInt($('#productQuantity').val());
+        const maxStock = parseInt($('#productQuantity').attr('max'));
+        if (currentVal < maxStock) {
+            $('#productQuantity').val(currentVal + 1);
+            updateProductSubtotal();
+        }
+    });
+    
+    $('#decreaseQty').click(function() {
+        const currentVal = parseInt($('#productQuantity').val());
+        if (currentVal > 1) {
+            $('#productQuantity').val(currentVal - 1);
+            updateProductSubtotal();
+        }
+    });
+    
+    $('#productQuantity').on('input', function() {
+        updateProductSubtotal();
+    });
+    
+    function updateProductSubtotal() {
+        if (selectedProduct) {
+            const quantity = parseInt($('#productQuantity').val()) || 1;
+            const subtotal = selectedProduct.precio * quantity;
+            $('#productSubtotal').text(subtotal.toFixed(2));
+        }
+    }
+    
+    // Agregar producto al carrito
+    $('#addProductToDebt').click(function() {
+        if (!selectedProduct) return;
+        
+        const quantity = parseInt($('#productQuantity').val()) || 1;
+        
+        // Verificar stock
+        if (quantity > selectedProduct.cantidad) {
+            showToast(`No hay suficiente stock. Disponible: ${selectedProduct.cantidad}`, 'error');
+            return;
+        }
+        
+        // Verificar si el producto ya está en el carrito
+        const existingIndex = cartItems.findIndex(item => item.id === selectedProduct.id);
+        
+        if (existingIndex >= 0) {
+            // Sumar a la cantidad existente
+            const newQuantity = cartItems[existingIndex].quantity + quantity;
+            if (newQuantity > selectedProduct.cantidad) {
+                showToast(`No hay suficiente stock. Disponible: ${selectedProduct.cantidad}`, 'error');
+                return;
+            }
+            
+            cartItems[existingIndex].quantity = newQuantity;
+            cartItems[existingIndex].subtotal = cartItems[existingIndex].price * newQuantity;
+        } else {
+            // Agregar nuevo producto
+            cartItems.push({
+                id: selectedProduct.id,
+                name: selectedProduct.nombre,
+                price: selectedProduct.precio,
+                quantity: quantity,
+                subtotal: selectedProduct.precio * quantity,
+                image: selectedProduct.imagen_url
+            });
+        }
+        
+        // Actualizar vista
+        updateCartView();
+        
+        // Habilitar botón de siguiente
+        $('#nextToStep3').prop('disabled', false);
+        
+        // Cerrar modal
+        $('#cantidadProductoModal').modal('hide');
+        selectedProduct = null;
+        
+        showToast('Producto agregado a la deuda', 'success');
+    });
+    
+    // Actualizar vista del carrito
+    function updateCartView() {
+        const cartContainer = $('#cartItems');
+        const cartCount = $('#cartCount');
+        
+        if (cartItems.length === 0) {
+            cartContainer.html(`
+                <div class="empty-state">
+                    <i class="bi bi-cart-x"></i>
+                    <p>No hay productos agregados</p>
+                </div>
+            `);
+            cartCount.text('0');
+            updateCartTotals();
+            return;
+        }
+        
+        let html = '';
+        cartItems.forEach((item, index) => {
+            html += `
+                <div class="cart-item p-2" data-index="${index}">
+                    <div class="d-flex align-items-center">
+                        <div class="cart-item-image me-2">
+                            ${item.image ? 
+                                `<img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover;">` : 
+                                `<i class="bi bi-image text-muted"></i>`
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="product-title">${item.name}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">$${item.price.toFixed(2)} c/u</span>
+                                <span class="fw-bold">$${item.subtotal.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center ms-2">
+                            <div class="quantity-control me-2">
+                                <button class="quantity-btn decrease-cart" data-index="${index}">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input type="number" class="quantity-input" value="${item.quantity}" min="1" data-index="${index}">
+                                <button class="quantity-btn increase-cart" data-index="${index}">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger remove-cart" data-index="${index}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        cartContainer.html(html);
+        cartCount.text(cartItems.length);
+        
+        // Agregar event listeners a los controles de cantidad
+        $('.decrease-cart').click(function() {
+            const index = $(this).data('index');
+            if (cartItems[index].quantity > 1) {
+                cartItems[index].quantity--;
+                cartItems[index].subtotal = cartItems[index].price * cartItems[index].quantity;
+                updateCartView();
+            }
+        });
+        
+        $('.increase-cart').click(function() {
+            const index = $(this).data('index');
+            // Verificar stock disponible
+            fetch(`/api/producto/${cartItems[index].id}`)
+                .then(response => response.json())
+                .then(producto => {
+                    if (cartItems[index].quantity + 1 > producto.cantidad) {
+                        showToast(`No hay suficiente stock. Disponible: ${producto.cantidad}`, 'error');
+                        return;
+                    }
+                    
+                    cartItems[index].quantity++;
+                    cartItems[index].subtotal = cartItems[index].price * cartItems[index].quantity;
+                    updateCartView();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    cartItems[index].quantity++;
+                    cartItems[index].subtotal = cartItems[index].price * cartItems[index].quantity;
+                    updateCartView();
+                });
+        });
+        
+        $('.quantity-input').on('input', function() {
+            const index = $(this).data('index');
+            const newQuantity = parseInt($(this).val()) || 1;
+            
+            // Verificar stock disponible
+            fetch(`/api/producto/${cartItems[index].id}`)
+                .then(response => response.json())
+                .then(producto => {
+                    if (newQuantity > producto.cantidad) {
+                        showToast(`No hay suficiente stock. Disponible: ${producto.cantidad}`, 'error');
+                        $(this).val(cartItems[index].quantity);
+                        return;
+                    }
+                    
+                    cartItems[index].quantity = newQuantity;
+                    cartItems[index].subtotal = cartItems[index].price * newQuantity;
+                    updateCartView();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    cartItems[index].quantity = newQuantity;
+                    cartItems[index].subtotal = cartItems[index].price * newQuantity;
+                    updateCartView();
+                });
+        });
+        
+        $('.remove-cart').click(function() {
+            const index = $(this).data('index');
+            cartItems.splice(index, 1);
+            updateCartView();
+            
+            if (cartItems.length === 0) {
+                $('#nextToStep3').prop('disabled', true);
+            }
+        });
+        
+        updateCartTotals();
+    }
+    
+    // Actualizar totales del carrito
+    function updateCartTotals() {
+        let subtotal = 0;
+        
+        cartItems.forEach(item => {
+            subtotal += item.subtotal;
+        });
+        
+        const iva = subtotal * 0.16;
+        const total = subtotal + iva;
+        
+        $('#cartSubtotal').text('$' + subtotal.toFixed(2));
+        $('#cartIva').text('$' + iva.toFixed(2));
+        $('#cartTotal').text('$' + total.toFixed(2));
+    }
+    
+    // Actualizar resumen del cliente
+    function updateClientSummary() {
+        if (!selectedClient) return;
+        
+        $('#clientSummary').html(`
+            <div class="mb-2">
+                <strong>Nombre:</strong> ${selectedClient.name}
+            </div>
+            <div class="mb-2">
+                <strong>Cédula:</strong> ${selectedClient.cedula}
+            </div>
+        `);
+        
+        $('#clienteIdInput').val(selectedClient.id);
+    }
+    
+    // Actualizar resumen del carrito
+    function updateCartSummary() {
+        let subtotal = 0;
+        let html = '';
+        
+        cartItems.forEach(item => {
+            subtotal += item.subtotal;
+            html += `
+                <div class="d-flex justify-content-between mb-2">
+                    <span>${item.name} x${item.quantity}</span>
+                    <span>$${item.subtotal.toFixed(2)}</span>
+                </div>
+            `;
+        });
+        
+        const iva = subtotal * 0.16;
+        const total = subtotal + iva;
+        
+        $('#cartSummary').html(html + `
+            <div class="d-flex justify-content-between mb-2">
+                <span>Subtotal:</span>
+                <span>$${subtotal.toFixed(2)}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>IVA (16%):</span>
+                <span>$${iva.toFixed(2)}</span>
+            </div>
+        `);
+        
+        $('#totalAmount').text('$' + total.toFixed(2));
+    }
+    
+    // Registrar nuevo cliente
+    $('#nuevoClienteForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: '{{ url_for("registrar_cliente") }}',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showToast('Cliente registrado exitosamente', 'success');
+                    $('#nuevoClienteModal').modal('hide');
+                    // Recargar la página para mostrar el nuevo cliente
+                    location.reload();
+                } else {
+                    let errorMsg = 'Error al registrar el cliente';
+                    if (response.errors) {
+                        errorMsg += ': ' + Object.values(response.errors).flat().join(', ');
+                    }
+                    showToast(errorMsg, 'error');
+                }
+            },
+            error: function() {
+                showToast('Error al registrar el cliente', 'error');
+            }
+        });
+    });
+  // Enviar formulario de deuda
+$('#deudaForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if (!selectedClient || cartItems.length === 0) {
+        showToast('Debe completar todos los pasos', 'error');
+        return;
+    }
+    
+    // Preparar datos como JSON
+    const datos = {
+        cliente_id: selectedClient.id,
+        productos: cartItems.map(item => ({
+            producto_id: item.id,
+            cantidad: item.quantity
+        }))
+    };
+    
+    // Mostrar loading
+    $('#saveDeuda').html('<span class="spinner-border spinner-border-sm me-2"></span> Procesando...').prop('disabled', true);
+    
+    // Enviar datos como JSON
+    fetch('{{ url_for("registrar_deuda_ajax") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || 'Error del servidor');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('Deuda registrada exitosamente', 'success');
+            setTimeout(() => {
+                window.location.href = '{{ url_for("consultar_deudas") }}';
+            }, 1500);
+        } else {
+            throw new Error(data.message || 'Error al registrar la deuda');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast(error.message, 'error');
+        $('#saveDeuda').html('<i class="bi bi-check-circle me-2"></i> Registrar Deuda').prop('disabled', false);
+    });
+});  
+
+});
+</script>
+{% endblock %}

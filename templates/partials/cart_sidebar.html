@@ -1,0 +1,87 @@
+{% if cart_items %}
+<div class="p-3">
+    {% for item in cart_items %}
+    <div class="d-flex align-items-center mb-3 pb-2 {% if not loop.last %}border-bottom{% endif %}">
+        <img src="{{ item.image or '/placeholder.svg?height=40&width=40' }}" 
+             alt="{{ item.name }}" class="rounded me-2" 
+             style="width: 40px; height: 40px; object-fit: cover;">
+        <div class="flex-grow-1">
+            <h6 class="mb-0 small">{{ item.name[:20] }}{% if item.name|length > 20 %}...{% endif %}</h6>
+            <small class="text-muted">
+                {{ item.quantity }}x 
+                {% if item.price > 0 %}
+                    ${{ "%.2f"|format(item.price) }}
+                {% else %}
+                    Cotización
+                {% endif %}
+            </small>
+            <!-- Show if it's a custom product -->
+            {% if item.get('is_custom') %}
+            <small class="text-info d-block">Personalizado</small>
+            {% endif %}
+        </div>
+        <div class="text-end">
+            {% if item.price > 0 %}
+            <small class="fw-bold">${{ "%.2f"|format(item.subtotal) }}</small>
+            {% else %}
+            <small class="fw-bold text-info">A cotizar</small>
+            {% endif %}
+        </div>
+        <!-- Remove button with data attributes -->
+        <form method="POST" action="{{ url_for('remove_from_cart', product_id=item.id) }}" class="ms-2 remove-item-form">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+<div class="card-footer">
+    {% if total > 0 %}
+    <div class="d-flex justify-content-between mb-2">
+        <strong>Total: ${{ "%.2f"|format(total) }}</strong>
+    </div>
+    {% endif %}
+    <div class="d-grid gap-2">
+        <a href="{{ url_for('view_cart') }}" class="btn btn-outline-primary btn-sm">Ver Carrito</a>
+        <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-sm">Finalizar</a>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-4">
+    <i class="bi bi-cart-x display-4 text-muted mb-3"></i>
+    <p class="text-muted">Tu carrito está vacío</p>
+</div>
+{% endif %}
+
+<script>
+
+// Handle remove from cart
+document.querySelectorAll('.remove-item-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(response => {
+            if (response.ok) {
+                // Reload cart sidebar
+                fetch("{{ url_for('cart_sidebar_partial') }}")
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('cartSidebar').innerHTML = html;
+                        updateCartCount();
+                    });
+                showToast('Producto eliminado del carrito', 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error al eliminar producto', 'error');
+        });
+    });
+});
+
+</script>

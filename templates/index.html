@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block title %}Tienda Online - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+<!-- Hero Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card border-0 bg-gradient text-white" style="background: var(--primary-gradient); min-height: 300px;" data-aos="fade-up">
+            <div class="card-body d-flex align-items-center">
+                <div class="row w-100 align-items-center">
+                    <div class="col-lg-8 order-2 order-lg-1">
+                        <h1 class="display-4 fw-bold mb-3">{{ configuracion.hero_titulo }}</h1>
+                        <p class="lead mb-4">{{ configuracion.hero_mensaje }}</p>
+                    </div>
+                    <div class="col-lg-4 text-center order-1 order-lg-2 mb-4 mb-lg-0">
+                        {% if empresa and empresa.logo_url %}
+                            <img src="{{ empresa.logo_url }}" alt="{{ empresa.nombre }}" class="img-fluid me-2" style="max-width: 200px; height: auto; border-radius: 50%;">
+                         {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="row">
+        <!-- Products Section -->
+        <div class="col-12 col-lg-9 order-2 order-lg-1" id="productos">
+            <!-- Category Filter -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-4 gap-2" data-aos="fade-up">
+                <h2 class="page-title mb-3 mb-md-0">Nuestros Productos</h2>
+                <div class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center w-100 w-md-auto">
+                    <!-- Dropdown de Categorías -->
+                    <div class="dropdown" style="position: relative; z-index: 1060;">
+                        <button type="button" class="btn btn-outline-primary dropdown-toggle w-100" 
+                                data-bs-toggle="dropdown" aria-expanded="false"
+                                style="border: 2px solid var(--primary-color); font-weight: 500;">
+                            <i class="bi bi-funnel me-2"></i>Categorías
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" 
+                            style="z-index: 1061; min-width: 250px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                            <li><a class="dropdown-item {% if categoria_actual == 'todos' %}active{% endif %}" 
+                                href="{{ url_for('index') }}"
+                                style="font-weight: 500;">
+                                <i class="bi bi-grid-fill me-2"></i>Todos los productos
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% for categoria in categorias %}
+                            <li><a class="dropdown-item {% if categoria_actual == categoria.nombre %}active{% endif %}" 
+                                href="{{ url_for('productos_por_categoria', categoria_id=categoria.id) }}"
+                                style="font-weight: 500;">
+                                <i class="bi bi-tag-fill me-2"></i>{{ categoria.nombre }}
+                            </a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <!-- Barra de búsqueda -->
+                    <div class="input-group flex-nowrap">
+                        <input type="text" id="searchInput" class="form-control" placeholder="Buscar productos..." 
+                            onkeyup="buscarProductos()"
+                            style="border: 2px solid var(--border-color);">
+                        <button class="btn btn-outline-primary" type="button" onclick="buscarProductos()"
+                                style="border: 2px solid var(--primary-color);">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Badge -->
+            {% if categoria_actual and categoria_actual != 'todos' %}
+            <div class="alert alert-info d-flex flex-column flex-md-row align-items-center mb-4" data-aos="fade-up">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <i class="bi bi-tag-fill me-2"></i>
+                    <span>Mostrando productos de la categoría: <strong>{{ categoria_actual }}</strong></span>
+                </div>
+                <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-info ms-md-auto">
+                    <i class="bi bi-x me-1"></i>Ver todos
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Products Grid -->
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+                {% for producto in productos %}
+                <div class="col" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+                    <div class="card h-100 product-card" data-product-id="{{ producto.id }}">
+                        <div class="position-relative overflow-hidden" style="cursor: pointer;" onclick="showProductModal({{ producto.id }})">
+                            <img src="{{ producto.imagen_url or '/placeholder.svg?height=200&width=200' }}" 
+                                 class="card-img-top product-img" alt="{{ producto.nombre }}"
+                                 style="height: 200px; object-fit: cover;">
+                            {% if producto.cantidad <= 0 and producto.precio > 0 %}
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-danger">Agotado</span>
+                            </div>
+                            {% elif producto.cantidad <= 20 and producto.precio > 0 %}
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-warning">Últimas unidades</span>
+                            </div>
+                            {% elif producto.precio == 0 %}
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-info">Cotización</span>
+                            </div>
+                            {% endif %}
+                            <!-- Removed overlay, now clicking image opens modal -->
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title product-title">{{ producto.nombre }}</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                {% if producto.precio > 0 %}
+                                <span class="h5 text-primary mb-0">${{ "%.2f"|format(producto.precio) }}</span>
+                                {% else %}
+                                <span class="h5 text-info mb-0">Cotización</span>
+                                {% endif %}
+                                {% if producto.categoria %}
+                                <span class="badge bg-light text-dark">{{ producto.categoria.nombre }}</span>
+                                {% endif %}
+                            </div>
+                            <p class="card-text text-muted small mb-3">
+                                <i class="bi bi-box me-1"></i>
+                                {% if producto.precio == 0 %}
+                                    Disponible
+                                {% elif producto.cantidad > 0 %}
+                                    {{ producto.cantidad }} disponibles
+                                {% else %}
+                                    Sin stock
+                                {% endif %}
+                            </p>
+                            
+                            <!-- Updated button behavior for custom products to show modal -->
+                            {% if producto.precio == 0 %}
+                            <button class="btn btn-info w-100" onclick="showProductModal({{ producto.id }})">
+                                <i class="bi bi-clipboard-check me-1"></i>Solicitar Cotización
+                            </button>
+                            {% elif producto.cantidad > 0 %}
+                            <form method="POST" action="{{ url_for('add_to_cart', product_id=producto.id) }}" class="add-to-cart-form">
+                                <div class="input-group">
+                                    <input type="number" name="quantity" class="form-control form-control-sm" 
+                                           value="1" min="1" max="{{ producto.cantidad }}">
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="bi bi-cart-plus me-1"></i>Agregar
+                                    </button>
+                                </div>
+                            </form>
+                            {% else %}
+                            <button class="btn btn-outline-secondary w-100" disabled>
+                                <i class="bi bi-x-circle me-1"></i>No disponible
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="text-center py-5" data-aos="fade-up">
+                        <i class="bi bi-box-seam display-1 text-muted mb-3"></i>
+                        <h3 class="text-muted">No hay productos disponibles</h3>
+                        <p class="text-muted">Vuelve pronto para ver nuestras novedades</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Shopping Cart Sidebar -->
+        <div class="col-12 col-lg-3 order-1 order-lg-2 mb-4 mb-lg-0">
+            <div class="sticky-lg-top" style="top: 100px;">
+                <div class="card" data-aos="fade-left">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-cart3 me-2"></i>Tu Carrito
+                            <span class="badge bg-light text-dark ms-2" id="cartItemCount"></span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0" id="cartSidebar">
+                        <div class="text-center py-4">
+                            <i class="bi bi-cart-x display-4 text-muted mb-3"></i>
+                            <p class="text-muted">Tu carrito está vacío</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Detail Modal -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">Detalle del Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <img id="productModalImage" src="/placeholder.svg" alt="" class="img-fluid rounded mb-3" style="width: 100%; max-height: 300px; object-fit: cover;">
+                    </div>
+                    <div class="col-md-6">
+                        <h4 id="productModalName"></h4>
+                        <div class="mb-3">
+                            <span id="productModalPrice" class="h4 text-primary"></span>
+                            <span id="productModalCategory" class="badge bg-light text-dark ms-2"></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Disponibilidad:</strong>
+                            <span id="productModalStock"></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Descripción:</strong>
+                            <p id="productModalDescription" class="text-muted"></p>
+                        </div>
+                        <div id="productModalActions">
+                            <!-- Actions will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Debt Consultation Modal -->
+<div class="modal fade" id="consultaDeudaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-search me-2"></i>Consulta de Deuda
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-center mb-4">Ingresa tu nombre para consultar tus deudas pendientes</p>
+                <form method="POST" action="{{ url_for('consulta_deuda_cliente') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">Nombre completo</label>
+                        {{ form.nombre(class="form-control", placeholder="Ingresa tu nombre completo") }}
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-2"></i>Consultar Deudas
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.product-card {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+}
+
+.product-img {
+    transition: transform 0.4s ease;
+}
+
+.product-card:hover .product-img {
+    transform: scale(1.05);
+}
+
+.product-title {
+    font-size: 1rem;
+    font-weight: 600;
+    height: 2.5rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.bg-gradient {
+    background: var(--primary-gradient) !important;
+}
+
+@media (max-width: 768px) {
+    .product-img {
+        height: 150px !important;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+    
+    .dropdown-menu {
+        min-width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+    
+    .input-group {
+        width: 100% !important;
+    }
+}
+
+.dropdown-menu {
+    z-index: 1060 !important;
+    border: none;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 0.5rem;
+    min-width: 200px;
+}
+
+.dropdown-item {
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item.active {
+    background: var(--primary-gradient);
+    color: white !important;
+}
+
+.dropdown-menu {
+    background: var(--bg-primary) !important;
+}
+
+.btn-outline-primary.dropdown-toggle {
+    border: 2px solid var(--primary-color);
+    font-weight: 500;
+}
+
+.btn-outline-primary.dropdown-toggle:hover {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    color: white;
+}
+
+.dropdown {
+    position: relative;
+    z-index: 1061;
+}
+
+#productos {
+    position: relative;
+    z-index: 1;
+}
+
+.d-flex.justify-content-between.align-items-center.mb-4 {
+    position: relative;
+    z-index: 100;
+}
+</style>
+
+<script>
+function showProductModal(productId) {
+    fetch(`/api/producto_detalle/${productId}`)
+        .then(response => response.json())
+        .then(producto => {
+            document.getElementById('productModalTitle').textContent = producto.es_personalizado ? 'Solicitar Cotización' : 'Detalle del Producto';
+            document.getElementById('productModalName').textContent = producto.nombre;
+            document.getElementById('productModalImage').src = producto.imagen_url || '/placeholder.svg?height=300&width=300';
+            document.getElementById('productModalImage').alt = producto.nombre;
+            
+            if (producto.precio > 0) {
+                document.getElementById('productModalPrice').textContent = `$${producto.precio.toFixed(2)}`;
+            } else {
+                document.getElementById('productModalPrice').textContent = 'Cotización gratuita';
+                document.getElementById('productModalPrice').className = 'h4 text-info';
+            }
+            
+            document.getElementById('productModalCategory').textContent = producto.categoria || 'Sin categoría';
+            
+            if (producto.es_personalizado) {
+                document.getElementById('productModalStock').textContent = 'Disponible';
+            } else if (producto.cantidad > 0) {
+                document.getElementById('productModalStock').textContent = `${producto.cantidad} disponibles`;
+            } else {
+                document.getElementById('productModalStock').textContent = 'Sin stock';
+            }
+            
+            document.getElementById('productModalDescription').textContent = producto.descripcion || 'Sin descripción disponible';
+            
+            // Generate actions based on product type
+            let actionsHtml = '';
+            if (producto.es_personalizado) {
+                actionsHtml = `
+                    <a href="/custom_product/${producto.id}" class="btn btn-info btn-lg w-100">
+                        <i class="bi bi-clipboard-check me-2"></i>Solicitar Cotización
+                    </a>
+                `;
+            } else if (producto.cantidad > 0) {
+                actionsHtml = `
+                    <form method="POST" action="/add_to_cart/${producto.id}" class="add-to-cart-form">
+                        <div class="input-group mb-3">
+                            <input type="number" name="quantity" class="form-control" value="1" min="1" max="${producto.cantidad}">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-cart-plus me-1"></i>Agregar al Carrito
+                            </button>
+                        </div>
+                    </form>
+                `;
+            } else {
+                actionsHtml = `
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        <i class="bi bi-x-circle me-1"></i>No disponible
+                    </button>
+                `;
+            }
+            
+            document.getElementById('productModalActions').innerHTML = actionsHtml;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('productModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error loading product details:', error);
+            showToast('Error al cargar detalles del producto', 'error');
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Update cart sidebar
+    function updateCartSidebar() {
+        fetch("{{ url_for('cart_sidebar_partial') }}")
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('cartSidebar').innerHTML = html;
+                updateCartCount();
+            })
+            .catch(error => {
+                console.error('Error updating cart:', error);
+                document.getElementById('cartSidebar').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-cart-x display-4 text-muted mb-3"></i>
+                        <p class="text-muted">Tu carrito está vacío</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Handle add to cart forms (including modal forms)
+    document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('add-to-cart-form')) {
+            e.preventDefault();
+            
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<span class="loading"></span>';
+            button.disabled = true;
+            
+            fetch(e.target.action, {
+                method: 'POST',
+                body: new FormData(e.target)
+            })
+            .then(response => {
+                if (response.ok) {
+                    updateCartSidebar();
+                    showToast('Producto añadido al carrito', 'success');
+                    // Close modal if open
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+                    if (modal) modal.hide();
+                } else {
+                    showToast('Error al añadir producto', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al añadir producto', 'error');
+            })
+            .finally(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            });
+        }
+    });
+    
+    // Initialize cart
+    updateCartSidebar();
+});
+
+// Función para buscar productos
+function buscarProductos() {
+    const query = document.getElementById('searchInput').value.trim();
+    
+    if (query.length < 2) {
+        mostrarTodosLosProductos();
+        return;
+    }
+    
+    fetch(`/buscar_productos?q=${encodeURIComponent(query)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error en la búsqueda');
+            }
+            return response.json();
+        })
+        .then(productos => {
+            actualizarVistaProductos(productos);
+        })
+        .catch(error => {
+            console.error('Error en la búsqueda:', error);
+            mostrarTodosLosProductos();
+        });
+}
+
+function mostrarTodosLosProductos() {
+    const productGrid = document.querySelector('.row-cols-1');
+    if (productGrid) {
+        const allProducts = productGrid.querySelectorAll('.col');
+        allProducts.forEach(product => {
+            product.style.display = 'block';
+        });
+        
+        // Eliminar mensaje de "no resultados" si existe
+        const noResults = productGrid.querySelector('.no-results-message');
+        if (noResults) {
+            noResults.remove();
+        }
+    }
+}
+
+function actualizarVistaProductos(productos) {
+    const productGrid = document.querySelector('.row-cols-1');
+    if (!productGrid) return;
+    
+    // Ocultar todos los productos primero
+    const allProducts = productGrid.querySelectorAll('.col');
+    allProducts.forEach(product => {
+        product.style.display = 'none';
+    });
+    
+    // Mostrar solo los productos que coinciden con la búsqueda
+    let foundResults = false;
+    productos.forEach(producto => {
+        const productElement = document.querySelector(`.product-card[data-product-id="${producto.id}"]`);
+        if (productElement) {
+            productElement.closest('.col').style.display = 'block';
+            foundResults = true;
+        }
+    });
+    
+    // Mostrar mensaje si no hay resultados
+    if (!foundResults) {
+        // Eliminar mensaje anterior si existe
+        const existingMessage = productGrid.querySelector('.no-results-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        const noResults = document.createElement('div');
+        noResults.className = 'col-12 text-center py-5 no-results-message';
+        noResults.innerHTML = `
+            <i class="bi bi-search display-1 text-muted mb-3"></i>
+            <h3 class="text-muted">No se encontraron productos</h3>
+            <p class="text-muted">Intenta con otros términos de búsqueda</p>
+        `;
+        
+        productGrid.appendChild(noResults);
+    } else {
+        // Eliminar mensaje de "no resultados" si existe
+        const noResults = productGrid.querySelector('.no-results-message');
+        if (noResults) {
+            noResults.remove();
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    
+    if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('show.bs.dropdown', function () {
+            dropdownMenu.style.zIndex = '1061';
+            dropdownMenu.style.position = 'absolute';
+        });
+        
+        document.addEventListener('click', function(event) {
+            if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                const dropdown = bootstrap.Dropdown.getInstance(dropdownToggle);
+                if (dropdown) {
+                    dropdown.hide();
+                }
+            }
+        });
+    }
+    
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+});
+</script>
+{% endblock %}

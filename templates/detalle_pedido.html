@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle del Pedido #{{ pedido.id }} - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="page-title mb-0">Pedido #{{ pedido.id }}</h2>
+                <div>
+                    <!-- Added PDF generation button -->
+                    <a href="{{ url_for('generar_pdf_pedido', pedido_id=pedido.id) }}" 
+                       class="btn btn-primary me-2" target="_blank">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Generar PDF
+                    </a>
+                    <a href="{{ url_for('listar_pedidos') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Volver a Pedidos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card" data-aos="fade-up">
+                <div class="card-header">
+                    <h5 class="mb-0">Productos del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Cantidad</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.producto_nombre }}</strong>
+                                        {% if item.es_personalizado %}
+                                        <div class="mt-2">
+                                            {% if item.medidas %}
+                                            <small class="text-muted d-block"><strong>Medidas:</strong> {{ item.medidas }}</small>
+                                            {% endif %}
+                                            {% if item.colores %}
+                                            <small class="text-muted d-block"><strong>Colores:</strong> {{ item.colores }}</small>
+                                            {% endif %}
+                                            {% if item.material %}
+                                            <small class="text-muted d-block"><strong>Material:</strong> {{ item.material }}</small>
+                                            {% endif %}
+                                            {% if item.descripcion_personalizada %}
+                                            <small class="text-muted d-block"><strong>Descripción:</strong> {{ item.descripcion_personalizada }}</small>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.precio > 0 %}
+                                        ${{ "%.2f"|format(item.precio) }}
+                                        {% else %}
+                                        <span class="text-info">Cotización</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.cantidad }}</td>
+                                    <td class="text-success fw-bold">
+                                        {% if item.precio > 0 %}
+                                        ${{ "%.2f"|format(item.precio * item.cantidad) }}
+                                        {% else %}
+                                        <span class="text-info">A cotizar</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-active">
+                                    <th colspan="3">Total:</th>
+                                    <th class="text-primary">${{ "%.2f"|format(pedido.total) }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- He quitado la condición if problemática que envolvía esta sección -->
+        <div class="col-lg-4">
+            <div class="card" data-aos="fade-left">
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Nombre:</strong><br>
+                        {{ pedido.cliente_nombre }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Teléfono:</strong><br>
+                        <a href="tel:{{ pedido.cliente_telefono }}" class="text-decoration-none">
+                            {{ pedido.cliente_telefono }}
+                        </a>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Email:</strong><br>
+                        <a href="mailto:{{ pedido.cliente_email }}" class="text-decoration-none">
+                            {{ pedido.cliente_email }}
+                        </a>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Dirección:</strong><br>
+                        {{ pedido.cliente_direccion }}
+                    </div>
+                    {% if pedido.notas %}
+                    <div class="mb-3">
+                        <strong>Notas:</strong><br>
+                        <div class="bg-light p-2 rounded">
+                            {{ pedido.notas }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mt-4" data-aos="fade-left" data-aos-delay="100">
+                <div class="card-header">
+                    <h5 class="mb-0">Estado del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="badge bg-{% if pedido.estado == 'pendiente' %}warning{% elif pedido.estado == 'procesando' %}info{% elif pedido.estado == 'completado' %}success{% elif pedido.estado == 'cancelado' %}danger{% else %}secondary{% endif %} fs-6">
+                            {{ pedido.estado.title() }}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Fecha del pedido:</strong><br>
+                        {{ pedido.fecha.strftime('%d/%m/%Y %H:%M') }}
+                    </div>
+                    
+                    <!-- Mejorando las acciones según el estado del pedido -->
+                    <div class="d-grid gap-2">
+                        {% if pedido.estado == 'pendiente' %}
+                        <button class="btn btn-success" onclick="cambiarEstado({{ pedido.id }}, 'procesando')">
+                            <i class="bi bi-arrow-repeat me-2"></i>Marcar como Procesando
+                        </button>
+                        <button class="btn btn-danger" onclick="cambiarEstado({{ pedido.id }}, 'cancelado')">
+                            <i class="bi bi-x-circle me-2"></i>Cancelar Pedido
+                        </button>
+                        {% elif pedido.estado == 'procesando' %}
+                        <button class="btn btn-success" onclick="cambiarEstado({{ pedido.id }}, 'completado')">
+                            <i class="bi bi-check-circle me-2"></i>Completar Pedido
+                        </button>
+                        <button class="btn btn-warning" onclick="cambiarEstado({{ pedido.id }}, 'pendiente')">
+                            <i class="bi bi-arrow-left-circle me-2"></i>Volver a Pendiente
+                        </button>
+                        {% elif pedido.estado == 'completado' %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Pedido completado. Se ha creado una deuda automáticamente.
+                        </div>
+                        <a href="{{ url_for('consultar_deudas') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-credit-card me-2"></i>Ver Deudas
+                        </a>
+                        {% elif pedido.estado == 'cancelado' %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle me-2"></i>
+                            Pedido cancelado. El stock ha sido restaurado.
+                        </div>
+                        {% endif %}
+                        
+                        <a href="https://wa.me/{{ pedido.cliente_telefono }}?text=Hola {{ pedido.cliente_nombre }}, tu pedido está {{ pedido.estado }}, nos gustaria saber si tienes algun otro requerimiento." 
+                           target="_blank" class="btn btn-success">
+                            <i class="bi bi-whatsapp me-2"></i>Contactar por WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usando el mismo script mejorado que en la lista de pedidos -->
+<script>
+// Script para manejar la actualización de precios de productos personalizados
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar precio
+    document.querySelectorAll('.actualizar-precio').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const precioInput = document.getElementById('precio-' + itemId);
+            const nuevoPrecio = parseFloat(precioInput.value);
+            
+            if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
+                alert('Por favor ingrese un precio válido mayor a cero');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('precio', nuevoPrecio);
+            
+            fetch(`/actualizar_precio_personalizado/${itemId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Actualizar la visualización del precio
+                    const precioCell = document.querySelector(`#personalizado-${itemId} td:nth-child(3)`);
+                    precioCell.innerHTML = `<span class="text-success fw-bold">$${nuevoPrecio.toFixed(2)}</span>`;
+                    
+                    // Actualizar el total del pedido si está visible
+                    const totalElement = document.querySelector('tfoot th.text-primary');
+                    if (totalElement) {
+                        totalElement.textContent = `$${data.nuevo_total.toFixed(2)}`;
+                    }
+                } else {
+                    showAlert('danger', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'Error al actualizar el precio');
+            });
+        });
+    });
+    
+    // Eliminar producto personalizado
+    document.querySelectorAll('.eliminar-personalizado').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const productoNombre = this.getAttribute('data-producto-nombre');
+            
+            if (!confirm(`¿Está seguro de eliminar el producto "${productoNombre}" del pedido?`)) {
+                return;
+            }
+            
+            fetch(`/eliminar_item_personalizado/${itemId}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Eliminar la fila de la tabla
+                    document.getElementById('personalizado-' + itemId).remove();
+                    
+                    // Actualizar el total del pedido si está visible
+                    const totalElement = document.querySelector('tfoot th.text-primary');
+                    if (totalElement) {
+                        totalElement.textContent = `$${data.nuevo_total.toFixed(2)}`;
+                    }
+                    
+                    // Recargar si no quedan productos personalizados
+                    if (document.querySelectorAll('.eliminar-personalizado').length === 0) {
+                        setTimeout(() => location.reload(), 1500);
+                    }
+                } else {
+                    showAlert('danger', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'Error al eliminar el producto');
+            });
+        });
+    });
+    
+    function showAlert(type, message) {
+        // Implementar función de alerta (usar la existente o crear una nueva)
+        alert(message); // Simplificado por ahora
+    }
+});
+
+function cambiarEstado(pedidoId, nuevoEstado) {
+    let mensaje = '';
+    
+    switch(nuevoEstado) {
+        case 'procesando':
+            mensaje = `¿Marcar el pedido #${pedidoId} como procesando? Esto indica que el pedido está siendo preparado.`;
+            break;
+        case 'completado':
+            mensaje = `¿Completar el pedido #${pedidoId}? Esto creará automáticamente una deuda para el cliente y el pedido se considerará entregado.`;
+            break;
+        case 'cancelado':
+            mensaje = `¿Cancelar el pedido #${pedidoId}? Esto restaurará el stock de los productos y el pedido no se podrá procesar.`;
+            break;
+        case 'pendiente':
+            mensaje = `¿Volver a marcar el pedido #${pedidoId} como pendiente?`;
+            break;
+        default:
+            mensaje = `¿Cambiar estado del pedido #${pedidoId} a ${nuevoEstado}?`;
+    }
+    
+    if (confirm(mensaje)) {
+        // Mostrar indicador de carga
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
+        button.disabled = true;
+        
+        fetch(`/cambiar_estado_pedido/${pedidoId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ estado: nuevoEstado })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showAlert('danger', data.message || 'Error al cambiar el estado');
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Error de conexión al cambiar el estado');
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        });
+    }
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Legacy function for compatibility
+function changeStatus(pedidoId, newStatus) {
+    cambiarEstado(pedidoId, newStatus);
+}
+</script>
+{% endblock %}

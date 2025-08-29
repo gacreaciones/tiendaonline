@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Pedido #{{ pedido.id }} - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title mb-0">Editar Pedido #{{ pedido.id }}</h2>
+        <a href="{{ url_for('listar_pedidos') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Pedidos
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información del Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong> {{ pedido.cliente_nombre }}</p>
+                            <p><strong>Teléfono:</strong> {{ pedido.cliente_telefono }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> {{ pedido.cliente_email or 'No especificado' }}</p>
+                            <p><strong>Dirección:</strong> {{ pedido.cliente_direccion or 'No especificada' }}</p>
+                        </div>
+                    </div>
+                    {% if pedido.notas %}
+                    <div class="mt-3">
+                        <p><strong>Notas:</strong> {{ pedido.notas }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sección para productos personalizados sin precio -->
+            {% set productos_sin_precio = [] %}
+            {% for item in items if item.es_personalizado and item.precio <= 0 %}
+                {% set _ = productos_sin_precio.append(item) %}
+            {% endfor %}
+            
+            {% if productos_sin_precio %}
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Productos Personalizados Sin Precio
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Debe establecer precios para los siguientes productos personalizados antes de completar el pedido.
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Especificaciones</th>
+                                    <th>Precio</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in productos_sin_precio %}
+                                <tr id="personalizado-{{ item.id }}">
+                                    <td>
+                                        <strong>{{ item.producto_nombre }}</strong>
+                                        <div class="text-muted small">Cantidad: {{ item.cantidad }}</div>
+                                    </td>
+                                    <td>
+                                        {% if item.medidas %}<div><small>Medidas: {{ item.medidas }}</small></div>{% endif %}
+                                        {% if item.colores %}<div><small>Colores: {{ item.colores }}</small></div>{% endif %}
+                                        {% if item.material %}<div><small>Material: {{ item.material }}</small></div>{% endif %}
+                                        {% if item.descripcion_personalizada %}<div><small>Descripción: {{ item.descripcion_personalizada }}</small></div>{% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm" style="width: 120px;">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" step="0.01" min="0.01" 
+                                                   class="form-control precio-personalizado" 
+                                                   id="precio-{{ item.id }}"
+                                                   placeholder="0.00"
+                                                   data-item-id="{{ item.id }}">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success actualizar-precio" 
+                                                data-item-id="{{ item.id }}">
+                                            <i class="bi bi-check-lg"></i> Establecer
+                                        </button>
+                                        <button class="btn btn-sm btn-danger eliminar-personalizado" 
+                                                data-item-id="{{ item.id }}"
+                                                data-producto-nombre="{{ item.producto_nombre }}">
+                                            <i class="bi bi-trash"></i> Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Productos del Pedido</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#agregarProductoModal">
+                        <i class="bi bi-plus-circle me-1"></i>Agregar Producto
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Cantidad</th>
+                                    <th>Subtotal</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        {{ item.producto_nombre }}
+                                        {% if item.es_personalizado %}
+                                        <div class="mt-1">
+                                            {% if item.medidas %}
+                                            <small class="text-muted d-block"><strong>Medidas:</strong> {{ item.medidas }}</small>
+                                            {% endif %}
+                                            {% if item.colores %}
+                                            <small class="text-muted d-block"><strong>Colores:</strong> {{ item.colores }}</small>
+                                            {% endif %}
+                                            {% if item.material %}
+                                            <small class="text-muted d-block"><strong>Material:</strong> {{ item.material }}</small>
+                                            {% endif %}
+                                            {% if item.descripcion_personalizada %}
+                                            <small class="text-muted d-block"><strong>Descripción:</strong> {{ item.descripcion_personalizada }}</small>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.es_personalizado and item.precio <= 0 %}
+                                        <span class="text-danger">Sin precio</span>
+                                        {% else %}
+                                        ${{ "%.2f"|format(item.precio) }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('actualizar_item_pedido', item_id=item.id) }}" class="d-flex align-items-center">
+                                            <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" class="form-control form-control-sm" style="width: 80px;">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary ms-2">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        {% if item.es_personalizado and item.precio <= 0 %}
+                                        <span class="text-danger">Sin precio</span>
+                                        {% else %}
+                                        ${{ "%.2f"|format(item.precio * item.cantidad) }}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('eliminar_item_pedido', item_id=item.id) }}" onsubmit="return confirm('¿Estás seguro de eliminar este producto del pedido?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="3" class="text-end">Total:</td>
+                                    <td>${{ "%.2f"|format(total) }}</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-cart-x display-4 text-muted mb-3"></i>
+                        <p class="text-muted">No hay productos en este pedido</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Resumen del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-semibold">Estado:</span>
+                        <span class="badge bg-{% if pedido.estado == 'pendiente' %}warning{% elif pedido.estado == 'procesando' %}info{% elif pedido.estado == 'completado' %}success{% else %}danger{% endif %}">
+                            {{ pedido.estado.title() }}
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-semibold">Fecha:</span>
+                        <span>{{ pedido.fecha.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-semibold">Total:</span>
+                        <span class="fw-bold text-success">${{ "%.2f"|format(total) }}</span>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2">
+                        {% if pedido.estado == 'pendiente' %}
+                        <form method="POST" action="{{ url_for('procesar_accion_pedido', pedido_id=pedido.id) }}">
+                            <button type="submit" name="accion" value="aceptar" class="btn btn-success w-100 mb-2">
+                                <i class="bi bi-check-circle me-2"></i>Aceptar Pedido
+                            </button>
+                            <button type="submit" name="accion" value="cancelar" class="btn btn-danger w-100" onclick="return confirm('¿Estás seguro de cancelar este pedido? Se restaurará el stock.');">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar Pedido
+                            </button>
+                        </form>
+                        {% elif pedido.estado == 'procesando' %}
+                        <form method="POST" action="{{ url_for('procesar_accion_pedido', pedido_id=pedido.id) }}">
+                            {% if productos_sin_precio %}
+                            <button type="button" class="btn btn-success w-100 mb-2" disabled>
+                                <i class="bi bi-check-circle me-2"></i>Completar Pedido
+                                <small class="d-block">Establece precios para productos personalizados</small>
+                            </button>
+                            {% else %}
+                            <button type="submit" name="accion" value="completar" class="btn btn-success w-100 mb-2">
+                                <i class="bi bi-check-circle me-2"></i>Completar Pedido
+                            </button>
+                            {% endif %}
+                            <button type="submit" name="accion" value="pendiente" class="btn btn-warning w-100">
+                                <i class="bi bi-arrow-left-circle me-2"></i>Volver a Pendiente
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar producto -->
+<div class="modal fade" id="agregarProductoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('editar_pedido', pedido_id=pedido.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Producto</label>
+                        <select name="producto_id" class="form-select" required>
+                            <option value="">Seleccionar producto...</option>
+                            {% for producto in productos %}
+                            <option value="{{ producto.id }}">{{ producto.nombre }} - ${{ "%.2f"|format(producto.precio) }} (Stock: {{ producto.cantidad }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" name="cantidad" class="form-control" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Script para manejar la actualización de precios de productos personalizados
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar precio
+    document.querySelectorAll('.actualizar-precio').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const precioInput = document.getElementById('precio-' + itemId);
+            const nuevoPrecio = parseFloat(precioInput.value);
+            
+            if (isNaN(nuevoPrecio) || nuevoPrecio <= 0) {
+                alert('Por favor ingrese un precio válido mayor a cero');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('precio', nuevoPrecio);
+            
+            fetch(`/actualizar_precio_personalizado/${itemId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Recargar la página para actualizar la vista
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('danger', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'Error al actualizar el precio');
+            });
+        });
+    });
+    
+    // Eliminar producto personalizado
+    document.querySelectorAll('.eliminar-personalizado').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const productoNombre = this.getAttribute('data-producto-nombre');
+            
+            if (!confirm(`¿Está seguro de eliminar el producto "${productoNombre}" del pedido?`)) {
+                return;
+            }
+            
+            fetch(`/eliminar_item_personalizado/${itemId}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    // Recargar la página para actualizar la vista
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showAlert('danger', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'Error al eliminar el producto');
+            });
+        });
+    });
+    
+    function showAlert(type, message) {
+        // Crear un elemento de alerta
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

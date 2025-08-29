@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Productos - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title mb-0">Gestión de Productos</h2>
+        <div>
+            <a href="{{ url_for('listar_categorias') }}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-tags me-2"></i>Gestionar Categorías
+            </a>
+            <button class="btn btn-primary" onclick="openProductModal()">
+                <i class="bi bi-plus-circle me-2"></i>Nuevo Producto
+            </button>
+        </div>
+    </div>
+  
+    <!-- Barra de búsqueda -->
+    <div class="card mb-4" data-aos="fade-up">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" id="searchProductInput" class="form-control" 
+                               placeholder="Buscar productos por nombre, categoría o descripción..."
+                               onkeyup="buscarProductos()">
+                        <button class="btn btn-outline-primary" type="button" onclick="buscarProductos()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted" id="productCount">{{ productos|length }} productos encontrados</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" data-aos="fade-up">
+        <div class="card-body">
+            {% if productos %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="productosTable">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productosTableBody">
+                        {% for producto in productos %}
+                        <tr class="product-row">
+                            <td>
+                                <img src="{{ producto.imagen_url or '/placeholder.svg?height=40&width=40' }}" 
+                                     alt="{{ producto.nombre }}" class="rounded" 
+                                     style="width: 40px; height: 40px; object-fit: cover;">
+                            </td>
+                            <td class="fw-semibold product-nombre">{{ producto.nombre }}</td>
+                            <td class="product-categoria">
+                                {% if producto.categoria %}
+                                <span class="badge bg-light text-dark">{{ producto.categoria.nombre }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Sin categoría</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-success fw-bold product-precio">${{ "%.2f"|format(producto.precio) }}</td>
+                            <td class="product-cantidad">
+                                <span class="badge bg-{% if producto.cantidad <= 0 %}danger{% elif producto.cantidad <= 5 %}warning{% else %}success{% endif %}">
+                                    {{ producto.cantidad }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" 
+                                            onclick="editProduct({{ producto.id }}, '{{ producto.nombre }}', {{ producto.cantidad }}, {{ producto.precio }}, {{ producto.categoria_id or 'null' }}, '{{ producto.imagen_url or '' }}', '{{ producto.descripcion or '' }}')">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('eliminar_producto', id=producto.id) }}" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este producto?')">
+                                        {{ form.hidden_tag() }}
+                                        <button type="submit" class="btn btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-box-seam display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">No hay productos registrados</h4>
+                <p class="text-muted">Comienza agregando tu primer producto</p>
+                <button class="btn btn-primary" onclick="openProductModal()">
+                    <i class="bi bi-plus-circle me-2"></i>Registrar Producto
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">
+                    <i class="bi bi-box me-2"></i>Nuevo Producto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="productForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Nombre del producto <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nombre" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Categoría</label>
+                            <select class="form-select" name="categoria_id">
+                                <option value="">Sin categoría</option>
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cantidad <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="cantidad" min="0" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Precio (USD) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control" name="precio" id="precioInput" min="0.01" required>
+                            <div class="form-text" id="precioHelp">Precio debe ser mayor a 0</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">URL de imagen</label>
+                        <input type="url" class="form-control" name="imagen_url" placeholder="https://ejemplo.com/imagen.jpg">
+                        <div class="form-text">Opcional: URL de la imagen del producto</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3" placeholder="Descripción del producto (opcional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function buscarProductos() {
+    const query = document.getElementById('searchProductInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.product-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const nombre = row.querySelector('.product-nombre').textContent.toLowerCase();
+        const categoria = row.querySelector('.product-categoria').textContent.toLowerCase();
+        const precio = row.querySelector('.product-precio').textContent.toLowerCase();
+        const cantidad = row.querySelector('.product-cantidad').textContent.toLowerCase();
+        
+        if (nombre.includes(query) || categoria.includes(query) || 
+            precio.includes(query) || cantidad.includes(query)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('productCount').textContent = `${visibleCount} productos encontrados`;
+}
+
+// Inicializar búsqueda al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('searchProductInput').focus();
+});
+
+let isEditing = false;
+let editingId = null;
+
+function openProductModal() {
+    isEditing = false;
+    editingId = null;
+    document.getElementById('productModalTitle').innerHTML = '<i class="bi bi-box me-2"></i>Nuevo Producto';
+    document.getElementById('productForm').reset();
+    new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+
+function editProduct(id, nombre, cantidad, precio, categoria_id, imagen_url, descripcion) {
+    isEditing = true;
+    editingId = id;
+    document.getElementById('productModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Producto';
+    
+    const form = document.getElementById('productForm');
+    form.nombre.value = nombre;
+    form.cantidad.value = cantidad;
+    form.precio.value = precio;
+    form.categoria_id.value = categoria_id || '';
+    form.imagen_url.value = imagen_url;
+    form.descripcion.value = descripcion;
+    
+    new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+
+document.getElementById('productForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const url = isEditing ? `/editar_producto/${editingId}` : '/registrar_producto';
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+            location.reload();
+        } else {
+            alert('Error al guardar el producto');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al guardar el producto');
+    });
+});
+
+// Mostrar mensaje informativo cuando se seleccione la categoría Personalizado
+document.querySelector('select[name="categoria_id"]').addEventListener('change', function() {
+    const precioField = document.querySelector('input[name="precio"]');
+    const personalizadoOption = this.querySelector('option[value="{{ personalizado_categoria_id }}"]');
+    
+    if (personalizadoOption && this.value == personalizadoOption.value) {
+        // Es la categoría Personalizado
+        precioField.placeholder = "0.00 (Precio para cotización)";
+        precioField.setAttribute('data-bs-toggle', 'tooltip');
+        precioField.setAttribute('title', 'Los productos personalizados pueden tener precio 0 y se cotizarán posteriormente');
+        
+        // Inicializar tooltip de Bootstrap
+        new bootstrap.Tooltip(precioField);
+    } else {
+        precioField.placeholder = "0.00";
+        precioField.removeAttribute('data-bs-toggle');
+        precioField.removeAttribute('title');
+    }
+});
+
+// Pasar el ID de la categoría Personalizado a la plantilla
+const personalizadoCategoria = {{ personalizado_categoria_id | tojson | default('null') }};
+
+// Función para ajustar las validaciones del precio según la categoría
+function ajustarValidacionPrecio() {
+    const selectCategoria = document.querySelector('select[name="categoria_id"]');
+    const inputPrecio = document.getElementById('precioInput');
+    const helpPrecio = document.getElementById('precioHelp');
+    
+    // Obtener la categoría Personalizado si existe
+    const personalizadoId = {{ personalizado_categoria_id | tojson | default('null') }};
+    
+    if (personalizadoId && selectCategoria.value == personalizadoId) {
+        inputPrecio.min = 0;
+        inputPrecio.required = false;
+        helpPrecio.textContent = 'Precio 0 para productos personalizados (se cotizarán después)';
+        inputPrecio.value = 0; // Establecer valor por defecto
+    } else {
+        inputPrecio.min = 0.01;
+        inputPrecio.required = true;
+        helpPrecio.textContent = 'Precio debe ser mayor a 0';
+    }
+}
+
+// Inicializar y escuchar cambios en la categoría
+document.addEventListener('DOMContentLoaded', function() {
+    const selectCategoria = document.querySelector('select[name="categoria_id"]');
+    if (selectCategoria) {
+        selectCategoria.addEventListener('change', ajustarValidacionPrecio);
+        // Ejecutar una vez al cargar para establecer el estado inicial
+        ajustarValidacionPrecio();
+    }
+});
+
+// Modificar la función openProductModal para resetear la validación
+function openProductModal() {
+    isEditing = false;
+    editingId = null;
+    document.getElementById('productModalTitle').innerHTML = '<i class="bi bi-box me-2"></i>Nuevo Producto';
+    document.getElementById('productForm').reset();
+    
+    // Resetear la validación del precio
+    setTimeout(ajustarValidacionPrecio, 100);
+    
+    new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+
+// Modificar la función editProduct para ajustar la validación
+function editProduct(id, nombre, cantidad, precio, categoria_id, imagen_url, descripcion) {
+    isEditing = true;
+    editingId = id;
+    document.getElementById('productModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Producto';
+    
+    const form = document.getElementById('productForm');
+    form.nombre.value = nombre;
+    form.cantidad.value = cantidad;
+    form.precio.value = precio;
+    form.categoria_id.value = categoria_id || '';
+    form.imagen_url.value = imagen_url;
+    form.descripcion.value = descripcion;
+    
+    // Ajustar validación después de establecer los valores
+    setTimeout(ajustarValidacionPrecio, 100);
+    
+    new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Carrito de Compras - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="page-title mb-4">Tu Carrito de Compras</h2>
+        </div>
+    </div>
+    
+    {% if cart_items %}
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card" data-aos="fade-up">
+                <div class="card-body">
+                    {% for item in cart_items %}
+                    <div class="row align-items-center py-3 {% if not loop.last %}border-bottom{% endif %}">
+                        <div class="col-md-2">
+                            <img src="{{ item.image or '/placeholder.svg?height=80&width=80' }}" 
+                                 alt="{{ item.name }}" class="img-fluid rounded" 
+                                 style="width: 80px; height: 80px; object-fit: cover;">
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="mb-1">{{ item.name }}</h5>
+                            {% if item.price > 0 %}
+                            <p class="text-muted mb-0">${{ "%.2f"|format(item.price) }} c/u</p>
+                            {% else %}
+                            <p class="text-info mb-0">Cotización</p>
+                            {% endif %}
+                            
+                            <!-- Show custom product details if available -->
+                            {% if item.get('is_custom') %}
+                            <div class="mt-2">
+                                {% if item.get('medidas') %}
+                                <small class="text-muted d-block"><strong>Medidas:</strong> {{ item.medidas }}</small>
+                                {% endif %}
+                                {% if item.get('colores') %}
+                                <small class="text-muted d-block"><strong>Colores:</strong> {{ item.colores }}</small>
+                                {% endif %}
+                                {% if item.get('material') %}
+                                <small class="text-muted d-block"><strong>Material:</strong> {{ item.material }}</small>
+                                {% endif %}
+                                {% if item.get('descripcion_personalizada') %}
+                                <small class="text-muted d-block"><strong>Descripción:</strong> {{ item.descripcion_personalizada }}</small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            {% if not item.get('is_custom') %}
+                            <form method="POST" action="{{ url_for('update_cart_quantity', product_id=item.id) }}" class="d-flex align-items-center">
+                                <label class="form-label me-2 mb-0">Cantidad:</label>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" 
+                                       min="1" class="form-control form-control-sm me-2" style="width: 80px;"
+                                       onchange="this.form.submit()">
+                            </form>
+                            {% else %}
+                            <span class="text-muted">Cotización única</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-2">
+                            {% if item.price > 0 %}
+                            <h5 class="text-primary mb-0">${{ "%.2f"|format(item.subtotal) }}</h5>
+                            {% else %}
+                            <h5 class="text-info mb-0">A cotizar</h5>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-1">
+                            <!-- Updated remove button to handle custom product keys -->
+                            <form method="POST" action="{{ url_for('remove_from_cart', product_id=item.id) }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card" data-aos="fade-left">
+                <div class="card-header">
+                    <h5 class="mb-0">Resumen del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    {% if total > 0 %}
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">${{ "%.2f"|format(total) }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <span class="h5">Total:</span>
+                        <span class="h5 text-primary">${{ "%.2f"|format(total) }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Updated custom items detection and notice -->
+                    {% set custom_items = [] %}
+                    {% for item in cart_items %}
+                        {% if item.get('is_custom') %}
+                            {% set _ = custom_items.append(item) %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if custom_items %}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Tienes {{ custom_items|length }} producto(s) personalizado(s). Te contactaremos para la cotización.</small>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-credit-card me-2"></i>Procesar Pedido
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Seguir Comprando
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card" data-aos="fade-up">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-cart-x display-1 text-muted mb-4"></i>
+                    <h3 class="text-muted mb-3">Tu carrito está vacío</h3>
+                    <p class="text-muted mb-4">Parece que no has agregado ningún producto a tu carrito todavía.</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-shop me-2"></i>Ir a la Tienda
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Handle quantity update for non-custom products
+document.querySelectorAll('input[name="quantity"]').forEach(input => {
+    input.addEventListener('change', function() {
+        if (this.value < 1) this.value = 1; // Minimum quantity is 1
+        this.form.submit();
+    });
+});
+document.querySelectorAll('.remove-item-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al eliminar el producto del carrito.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar el producto del carrito.');
+        });
+    });
+});
+
+</script>
+{% endblock %}

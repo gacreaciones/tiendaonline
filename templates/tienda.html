@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Tienda - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Filtros y búsqueda -->
+    <div class="col-12 mb-4">
+        <div class="card" data-aos="fade-up">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="q" class="form-label">
+                            <i class="fas fa-search me-1"></i>Buscar productos
+                        </label>
+                        <input type="text" class="form-control" id="q" name="q" 
+                               value="{{ q }}" placeholder="Buscar por nombre o descripción...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="categoria" class="form-label">
+                            <i class="fas fa-tags me-1"></i>Categoría
+                        </label>
+                        <select class="form-select" id="categoria" name="categoria">
+                            <option value="">Todas las categorías</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.categoria }}" {% if categoria_actual == cat.categoria %}selected{% endif %}>
+                                {{ cat.categoria }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i>Buscar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Productos -->
+    <div class="col-12">
+        {% if categoria_actual %}
+        <div class="alert alert-info" data-aos="fade-up">
+            <i class="fas fa-tag me-2"></i>
+            Mostrando productos de la categoría: <strong>{{ categoria_actual }}</strong>
+            <a href="{{ url_for('tienda') }}" class="btn btn-sm btn-outline-info ms-3">Ver todos</a>
+        </div>
+        {% endif %}
+        
+        <div class="row">
+            {% if productos %}
+                {% for producto in productos %}
+                <div class="col-lg-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="{{ loop.index * 100 }}">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <img src="{{ producto.imagen_url }}" class="card-img-top product-img" alt="{{ producto.nombre }}">
+                            {% if producto.cantidad <= 5 %}
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Pocas unidades
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ producto.nombre }}</h5>
+                            <p class="card-text text-muted small flex-grow-1">
+                                {{ producto.descripcion[:100] }}{% if producto.descripcion|length > 100 %}...{% endif %}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="h5 text-primary mb-0">${{ "%.2f"|format(producto.precio) }}</span>
+                                <span class="badge bg-secondary">{{ producto.categoria }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-box me-1"></i>Stock: {{ producto.cantidad }}
+                                </small>
+                                <span class="badge bg-success">Disponible</span>
+                            </div>
+                            <div class="mt-auto">
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('producto_detalle', id=producto.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>Ver Detalles
+                                    </a>
+                                    {% if current_user.is_authenticated and not current_user.es_admin %}
+                                        <form method="POST" action="{{ url_for('agregar_carrito') }}" class="add-to-cart-form">
+                                            <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                                            <input type="hidden" name="cantidad" value="1">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-cart-plus me-1"></i>Agregar al Carrito
+                                            </button>
+                                        </form>
+                                    {% elif not current_user.is_authenticated %}
+                                        <a href="{{ url_for('login') }}" class="btn btn-secondary w-100">
+                                            <i class="fas fa-sign-in-alt me-1"></i>Inicia Sesión para Comprar
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12" data-aos="fade-up">
+                    <div class="card text-center">
+                        <div class="card-body py-5">
+                            <i class="fas fa-search fa-4x text-muted mb-4"></i>
+                            <h4>No se encontraron productos</h4>
+                            <p class="text-muted">Intenta con otros términos de búsqueda o categorías.</p>
+                            <a href="{{ url_for('tienda') }}" class="btn btn-primary">Ver Todos los Productos</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Toast para notificaciones -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong class="me-auto">Éxito</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            Producto agregado al carrito exitosamente.
+        </div>
+    </div>
+</div>
+
+<style>
+.product-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+.product-img {
+    height: 250px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-img {
+    transform: scale(1.05);
+}
+
+.card-title {
+    font-weight: 600;
+    color: var(--color-dark);
+    min-height: 2.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .product-img {
+        height: 200px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle add to cart forms
+    const addToCartForms = document.querySelectorAll('.add-to-cart-form');
+    
+    addToCartForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Show success toast
+                    const toast = new bootstrap.Toast(document.getElementById('cartToast'));
+                    toast.show();
+                    
+                    // Update cart count
+                    updateCartCount();
+                } else {
+                    throw new Error('Error al agregar producto');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al agregar el producto al carrito');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

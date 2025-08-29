@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Verificar Identificación - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card" data-aos="fade-up">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-person-check me-2"></i>Verificación de Identificación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-center mb-4">
+                        Para continuar con tu Pedido, ingresa tu cédula o RIF
+                    </p>
+                    
+                    <form method="POST">
+                        <div class="mb-4">
+                            <label class="form-label">Cédula o RIF</label>
+                            <input type="text" class="form-control form-control-lg" 
+                                   name="identificacion" 
+                                   placeholder="Ej: V12345678 o J123456789"
+                                   required
+                                   pattern="[VJGEPvjgep][0-9]{5,9}"
+                                   title="Formato: V12345678 (cédula) o J123456789 (RIF)">
+                            <div class="form-text">
+                                Ingresa tu cédula (V12345678) o RIF (J123456789)
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-arrow-right me-2"></i>Continuar con el Pedido
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="mb-2">
+                            <i class="bi bi-info-circle me-2"></i>¿Por qué solicitamos esto?
+                        </h6>
+                        <p class="small mb-0">
+                            Verificamos tu identificación para agilizar el proceso de pedido 
+                            y pre-llenar tus datos si ya eres cliente registrado.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control-lg {
+    font-size: 1.1rem;
+    padding: 1rem;
+    text-transform: uppercase;
+}
+</style>
+{% endblock %}

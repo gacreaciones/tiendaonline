@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitar Cotización - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card" data-aos="fade-up">
+                <div class="card-header text-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-clipboard-check me-2"></i>
+                        Solicitar Cotización
+                    </h4>
+                    <p class="text-muted mb-0">Especifica los detalles de tu producto personalizado</p>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4 text-center">
+                            <img src="{{ producto.imagen_url or '/placeholder.svg?height=150&width=150' }}" 
+                                 alt="{{ producto.nombre }}" class="img-fluid rounded mb-3" 
+                                 style="max-height: 150px;">
+                        </div>
+                        <div class="col-md-8">
+                            <h5>{{ producto.nombre }}</h5>
+                            <p class="text-muted">{{ producto.descripcion }}</p>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Cotización gratuita:</strong> Te contactaremos con el precio y tiempo de entrega según tus especificaciones.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('add_custom_to_cart', product_id=producto.id) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-rulers me-1"></i>Medidas
+                                    </label>
+                                    <input type="text" name="medidas" class="form-control" 
+                                           placeholder="Ej: 30cm x 20cm x 10cm" required>
+                                    <div class="form-text">Especifica las dimensiones que necesitas</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-palette me-1"></i>Colores
+                                    </label>
+                                    <input type="text" name="colores" class="form-control" 
+                                           placeholder="Ej: Azul marino, blanco" required>
+                                    <div class="form-text">Indica los colores preferidos</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-box me-1"></i>Material
+                            </label>
+                            <select name="material" class="form-select" required>
+                                <option value="">Selecciona el material...</option>
+                                <option value="Mdf">Mdf</option>
+                                <option value="Acrilico">Acrilico</option>
+                                <option value="Vinil">Vinil</option>
+                                <option value="Otro">Otro (especificar en descripción)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="bi bi-chat-text me-1"></i>Descripción adicional
+                            </label>
+                            <textarea name="descripcion_personalizada" class="form-control" rows="4" 
+                                      placeholder="Describe cualquier detalle adicional, funcionalidades especiales, acabados, etc." required></textarea>
+                            <div class="form-text">Mientras más detalles proporciones, mejor podremos cotizar tu producto</div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-cart-plus me-1"></i>Solicitar Cotización
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

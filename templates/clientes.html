@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title mb-0">Gestión de Clientes</h2>
+        <a href="{{ url_for('registrar_cliente') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus me-2"></i>Nuevo Cliente
+        </a>
+    </div>
+    
+    <!-- Barra de búsqueda -->
+    <div class="card mb-4" data-aos="fade-up">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" id="searchClientInput" class="form-control" 
+                               placeholder="Buscar clientes por nombre, cédula, teléfono o email..."
+                               onkeyup="buscarClientes()">
+                        <button class="btn btn-outline-primary" type="button" onclick="buscarClientes()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted" id="clientCount">{{ clientes|length }} clientes encontrados</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" data-aos="fade-up">
+        <div class="card-body">
+            {% if clientes %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="clientesTable">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Cédula</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th>Dirección</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientesTableBody">
+                        {% for cliente in clientes %}
+                        <tr class="client-row">
+                            <td class="fw-semibold client-nombre">{{ cliente.nombre }}</td>
+                            <td class="client-cedula">{{ cliente.cedula }}</td>
+                            <td class="client-telefono">{{ cliente.telefono }}</td>
+                            <td class="client-email">{{ cliente.email }}</td>
+                            <td class="client-direccion">{{ cliente.direccion }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="editClient({{ cliente.id }}, '{{ cliente.nombre }}', '{{ cliente.cedula }}', '{{ cliente.direccion }}', '{{ cliente.telefono }}', '{{ cliente.email }}')">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('eliminar_cliente', id=cliente.id) }}" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este cliente?')">
+                                        {{ form.hidden_tag() }}
+                                        <button type="submit" class="btn btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-people display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">No hay clientes registrados</h4>
+                <p class="text-muted">Comienza agregando tu primer cliente</p>
+                <a href="{{ url_for('registrar_cliente') }}" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-2"></i>Registrar Cliente
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div class="modal fade" id="editClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>Editar Cliente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editClientForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" id="clientId" name="client_id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" class="form-control" name="nombre" id="editNombre" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cédula</label>
+                                <input type="text" class="form-control" name="cedula" id="editCedula" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <input type="text" class="form-control" name="direccion" id="editDireccion" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" id="editTelefono" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" id="editEmail" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function buscarClientes() {
+    const query = document.getElementById('searchClientInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.client-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const nombre = row.querySelector('.client-nombre').textContent.toLowerCase();
+        const cedula = row.querySelector('.client-cedula').textContent.toLowerCase();
+        const telefono = row.querySelector('.client-telefono').textContent.toLowerCase();
+        const email = row.querySelector('.client-email').textContent.toLowerCase();
+        const direccion = row.querySelector('.client-direccion').textContent.toLowerCase();
+        
+        if (nombre.includes(query) || cedula.includes(query) || 
+            telefono.includes(query) || email.includes(query) || 
+            direccion.includes(query)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('clientCount').textContent = `${visibleCount} clientes encontrados`;
+}
+
+// Inicializar búsqueda al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('searchClientInput').focus();
+});
+
+function editClient(id, nombre, cedula, direccion, telefono, email) {
+    document.getElementById('clientId').value = id;
+    document.getElementById('editNombre').value = nombre;
+    document.getElementById('editCedula').value = cedula;
+    document.getElementById('editDireccion').value = direccion;
+    document.getElementById('editTelefono').value = telefono;
+    document.getElementById('editEmail').value = email;
+    
+    document.getElementById('editClientForm').action = `/editar_cliente/${id}`;
+    
+    new bootstrap.Modal(document.getElementById('editClientModal')).show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,864 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de Deuda #{{ deuda.id }} - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title mb-0">Recibo Numero: {{ deuda.id }}</h2>
+        <div>
+            <!-- Selector de moneda -->
+            <div class="btn-group me-2" role="group">
+                <button type="button" class="btn btn-outline-primary active" id="btnUsd">
+                    <i class="bi bi-currency-dollar me-1"></i>USD
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="btnBs">
+                    <i class="bi bi-currency-exchange me-1"></i>BS
+                </button>
+            </div>
+
+            <button onclick="printAllPages()" class="btn btn-outline-primary me-2">
+                <i class="bi bi-printer me-1"></i>Imprimir Todo
+            </button>
+            <a href="{{ url_for('consultar_deudas') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver
+            </a>
+        </div>
+    </div>
+
+<div class="alert alert-info mb-4" data-aos="fade-up">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-info-circle me-2"></i>
+            <strong>Tasa de cambio:</strong> 
+            <span id="tasaCambio">1 USD = {{ "%.2f"|format(tasa_cambio) }} BS</span>
+            <small class="text-muted ms-2">(Actualizada: {{ tasa_cambio_fecha }})</small>
+        </div>
+        <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#tasaCambioModal">
+            <i class="bi bi-pencil"></i> Editar Tasa
+        </button>
+    </div>
+</div>
+
+<!-- Modal para editar tasa de cambio -->
+<div class="modal fade" id="tasaCambioModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Actualizar Tasa de Cambio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="tasaCambioForm">
+                    <div class="mb-3">
+                        <label class="form-label">Tasa de cambio (1 USD = X BS)</label>
+                        <input type="number" step="0.01" min="0.01" class="form-control" 
+                               id="nuevaTasa" value="{{ "%.2f"|format(tasa_cambio) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción (opcional)</label>
+                        <input type="text" class="form-control" id="descripcionTasa" 
+                               placeholder="Ej: Tasa del BCV">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarTasa">
+                    <i class="bi bi-check-lg"></i> Guardar Tasa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Navegación entre páginas -->
+{% if total_pages > 1 %}
+<div class="pagination-controls mb-4 d-print-none">
+    <nav aria-label="Navegación de páginas del recibo">
+        <ul class="pagination justify-content-center">
+            {% for page_num in range(1, total_pages + 1) %}
+            <li class="page-item {% if loop.index == 1 %}active{% endif %}">
+                <button class="page-link pagination-btn page-button" 
+                        onclick="showPage({{ page_num }})" 
+                        data-page="{{ page_num }}"
+                        style="color: var(--primary-color) !important; background-color: rgb(28, 221, 255) !important; border: 2px solid var(--primary-color) !important;">
+                    {{ page_num }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+    </nav>
+    <div class="pagination-info">
+        <small class="text-muted">Página <span id="currentPage">1</span> de {{ total_pages }} - Total: {{ productos|length }} productos</small>
+    </div>
+</div>
+{% endif %}
+
+    <!-- Contenedor de páginas del recibo -->
+    <div id="receiptPages">
+        {% for page_data in paginated_products %}
+        <div class="invoice-container receipt-page" id="page{{ loop.index }}" {% if loop.index > 1 %}style="display: none;"{% endif %}>
+            <div class="invoice-paper">
+                <!-- Header profesional -->
+                <div class="invoice-header">
+                    <div class="company-section">
+                        <div class="company-logo">
+                            {% if empresa and empresa.logo_url %}
+                                <img src="{{ empresa.logo_url }}" alt="{{ empresa.nombre }}" style="width: 80px; height: 80px; border-radius: 50%;">
+                            {% else %}
+                                <div class="logo-placeholder">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="company-name">
+                            <h1>{{ empresa.nombre if empresa else 'Mi Empresa' }}</h1>
+                            <p class="rif">RIF: {{ empresa.rif if empresa else 'J-00000000-0' }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="control-info">
+                        <div class="control-box">
+                            <p class="form-type">FORMA LIBRE</p>
+                            <p class="control-number">NÚMERO DE CONTROL</p>
+                            <p class="control-value">00-<span class="red-number">{{ "%07d"|format(deuda.id) }}</span></p>
+                        </div>
+                        <div class="invoice-details">
+                            <p><strong>FACTURA SERIE N°:</strong> {{ "%07d"|format(deuda.id) }}</p>
+                            <p><strong>FECHA DE EMISIÓN:</strong> {{ deuda.fecha.strftime('%d-%m-%Y') }}</p>
+                            {% if total_pages > 1 %}
+                            <p><strong>PÁGINA:</strong> {{ loop.index }} de {{ total_pages }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del cliente -->
+                <div class="client-section">
+                    <div class="client-row">
+                        <div class="client-field">
+                            <span class="field-label">CLIENTE:</span>
+                            <span class="field-value">{{ cliente.nombre }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="client-row">
+                        <div class="client-field">
+                            <span class="field-label">DIRECCIÓN FISCAL:</span>
+                            <span class="field-value">{{ cliente.direccion or 'NO ESPECIFICADA' }}</span>
+                        </div>
+                        <div class="invoice-details">
+                            <p><span class="field-label">RIF:</span> {{ cliente.cedula }}</p>
+                            <p><span class="field-label">TELÉFONO:</span> {{ cliente.telefono or 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de productos para esta página -->
+                <div class="products-section">
+                    <table class="products-table compact-table">
+                        <thead>
+                            <tr>
+                                <th class="desc-col">DESCRIPCIÓN</th>
+                                <th class="um-col">UM</th>
+                                <th class="qty-col">CANTIDAD</th>
+                                <th class="price-col">PRECIO UNITARIO<br><span class="currency-label">BOLÍVARES</span></th>
+                                <th class="total-col">TOTAL NETO<br><span class="currency-label">BOLÍVARES</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producto in page_data.productos %}
+                            <tr class="product-row">
+                                <td class="product-name">{{ producto.nombre }}</td>
+                                <td class="text-center">Unid</td>
+                                <td class="text-center">{{ producto.cantidad }}</td>
+                                <td class="text-end">
+                                    <span class="price-usd" style="display: none;">${{ "%.2f"|format(producto.precio_sin_iva) }}</span>
+                                    <span class="price-bs">Bs {{ "%.2f"|format(producto.precio_sin_iva * tasa_cambio) }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="price-usd" style="display: none;">${{ "%.2f"|format(producto.subtotal) }}</span>
+                                    <span class="price-bs">Bs {{ "%.2f"|format(producto.subtotal * tasa_cambio) }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totales - Solo en la última página -->
+                {% if loop.index == total_pages %}
+                <div class="totals-section">
+                    <div class="totals-table">
+                        <div class="total-row">
+                            <span class="total-label">BASE IMPONIBLE</span>
+                            <span class="total-value">
+                                <span class="price-usd" style="display: none;">${{ "%.2f"|format(subtotal_sin_iva) }}</span>
+                                <span class="price-bs">Bs {{ "%.2f"|format(subtotal_sin_iva * tasa_cambio) }}</span>
+                            </span>
+                        </div>
+                        <div class="total-row">
+                            <span class="total-label">IVA</span>
+                            <span class="total-percent">16%</span>
+                            <span class="total-value">
+                                <span class="price-usd" style="display: none;">${{ "%.2f"|format(iva) }}</span>
+                                <span class="price-bs">Bs {{ "%.2f"|format(iva * tasa_cambio) }}</span>
+                            </span>
+                        </div>
+                        <div class="total-row final-total">
+                            <span class="total-label">TOTAL A PAGAR</span>
+                            <span class="total-value">
+                                <span class="price-usd" style="display: none;">${{ "%.2f"|format(total_con_iva) }}</span>
+                                <span class="price-bs">Bs {{ "%.2f"|format(total_con_iva * tasa_cambio) }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Subtotal de página para páginas intermedias -->
+                <div class="page-subtotal">
+                    <div class="subtotal-row">
+                        <span class="subtotal-label">SUBTOTAL PÁGINA {{ loop.index }}:</span>
+                        <span class="subtotal-value">
+                            <span class="price-usd" style="display: none;">${{ "%.2f"|format(page_data.subtotal) }}</span>
+                            <span class="price-bs">Bs {{ "%.2f"|format(page_data.subtotal * tasa_cambio) }}</span>
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Footer legal -->
+                <div class="invoice-footer">
+                    <p class="legal-text">ESTE DOCUMENTO VA SIN TACHADURA NI ENMIENDA</p>
+                    <div class="footer-info">
+                        <p><strong>Domicilio Fiscal:</strong> {{ empresa.direccion if empresa else 'Dirección no especificada' }}, RIF: {{ empresa.rif if empresa else 'J-00000000-0' }}</p>
+                        <p><strong>Teléfono:</strong> {{ empresa.telefono if empresa else 'N/A' }}</p>
+                    </div>
+                    <p class="copy-type">ORIGINAL - CLIENTE{% if total_pages > 1 %} - PÁGINA {{ loop.index }}/{{ total_pages }}{% endif %}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Acciones adicionales para administradores -->
+    {% if current_user.rol == 'admin' and saldo_pendiente > 0 %}
+    <div class="card mt-4 d-print-none" data-aos="fade-up">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Registrar Pago</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('registrar_pago_parcial', deuda_id=deuda.id) }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Monto a Pagar</label>
+                            <input type="number" name="monto" class="form-control" step="0.01" max="{{ saldo_pendiente }}" required>
+                            <div class="form-text">Máximo: ${{ "%.2f"|format(saldo_pendiente) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <input type="text" name="descripcion" class="form-control" placeholder="Descripción del pago">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-circle me-1"></i>Registrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+@media print {
+    .btn, .card:not(.invoice-container), .page-title, nav, footer, .d-flex.justify-content-between, .pagination-controls {
+        display: none !important;
+    }
+    
+    .container-fluid {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .invoice-container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        /* Removido page-break-after: always para evitar páginas en blanco */
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+    
+    /* Solo la última página no debe tener salto de página */
+    .invoice-container:not(:last-child) {
+        page-break-after: always;
+        break-after: page;
+    }
+    
+    .invoice-paper {
+        border: 2px solid #000 !important;
+        padding: 15mm !important;
+        min-height: auto !important;
+        position: relative !important;
+        padding-bottom: 40mm !important;
+    }
+    
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 11px !important;
+    }
+    
+    @page {
+        margin: 10mm;
+        size: letter;
+    }
+    
+    .product-row {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    .receipt-page {
+        display: block !important;
+    }
+    
+    .invoice-footer {
+        position: absolute !important;
+        bottom: 15mm !important;
+        left: 15mm !important;
+        right: 15mm !important;
+        margin-top: 20px !important;
+    }
+    
+    .totals-section {
+        margin-bottom: 30px !important;
+    }
+    
+    .page-subtotal {
+        margin-bottom: 30px !important;
+    }
+}
+
+.invoice-container {
+    background: rgb(255, 255, 255);
+    margin: 20px auto;
+    max-width: 210mm;
+    min-height: 235mm;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.invoice-paper {
+    padding: 15mm;
+    border: 2px solid #000;
+    min-height: 220mm;
+    position: relative;
+}
+
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+}
+
+.company-section {
+    flex: 1;
+}
+
+.company-logo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo-placeholder {
+    width: 80px;
+    height: 80px;
+    border: 3px solid #ff6b35;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+}
+
+.company-name h1 {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    color: #000;
+}
+
+.company-name .rif {
+    font-size: 12px;
+    margin: 2px 0 0 0;
+    color: #000;
+}
+
+.fiscal-info {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.fiscal-info p {
+    margin: 2px 0;
+}
+
+.control-info {
+    flex: 1;
+    text-align: right;
+}
+
+.control-box {
+    border: 2px solid #000;
+    padding: 8px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.form-type {
+    font-weight: bold;
+    font-size: 14px;
+    margin: 0;
+}
+
+.control-number {
+    font-size: 11px;
+    margin: 2px 0;
+}
+
+.control-value {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.red-number {
+    color: #dc3545;
+}
+
+.invoice-details {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.invoice-details p {
+    margin: 2px 0;
+}
+
+.client-section {
+    margin: 20px 0;
+    font-size: 12px;
+}
+
+.client-row {
+    display: flex;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.client-field {
+    display: flex;
+    align-items: center;
+    margin-right: 30px;
+}
+
+.field-label {
+    font-weight: bold;
+    margin-right: 10px;
+    min-width: 120px;
+}
+
+.rif-field {
+    margin-left: auto;
+    margin-right: 30px;
+}
+
+.phone-field {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.products-section {
+    margin: 20px 0;
+}
+
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.products-table th {
+    background-color: #f8f9fa;
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+.products-table td {
+    border: 1px solid #000;
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.desc-col { width: 40%; }
+.um-col { width: 10%; text-align: center; }
+.qty-col { width: 15%; text-align: center; }
+.price-col { width: 17.5%; text-align: center; }
+.total-col { width: 17.5%; text-align: center; }
+
+.totals-section {
+    margin: 20px 0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.totals-table {
+    width: 300px;
+    border: 2px solid #000;
+}
+
+.total-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    border-bottom: 1px solid #000;
+    font-size: 12px;
+}
+
+.total-row:last-child {
+    border-bottom: none;
+}
+
+.final-total {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+.total-label {
+    flex: 1;
+    font-weight: bold;
+}
+
+.total-percent {
+    margin-right: 20px;
+    font-weight: bold;
+}
+
+.total-value {
+    min-width: 80px;
+    text-align: right;
+    font-weight: bold;
+}
+
+.invoice-footer {
+    position: relative;
+    margin-top: 30px;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.3;
+}
+
+.legal-text {
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 12px;
+}
+
+.footer-info {
+    border: 1px solid #000;
+    border-radius: 20px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.footer-info p {
+    margin: 2px 0;
+}
+
+.copy-type {
+    color: #dc3545;
+    font-weight: bold;
+    font-size: 12px;
+    margin: 10px 0 0 0;
+}
+
+/* Estilos para el selector de moneda */
+.btn-group .btn.active {
+    background: var(--primary-gradient);
+    color: rgb(114, 236, 144);
+}
+
+.currency-label {
+    font-size: 0.8em;
+    font-weight: normal;
+}
+
+/* Estilos para la paginación */
+.pagination-controls {
+    background: var(--bg-primary);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.pagination {
+    margin-bottom: 0.5rem;
+}
+
+.pagination .page-item {
+    margin: 0 0.25rem;
+}
+
+.pagination .page-link {
+    border: 2px solid var(--primary-color) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--primary-color) !important; /* Color de texto siempre visible */
+    background-color: white !important; /* Fondo blanco para contraste */
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    min-width: 45px;
+    text-align: center;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.pagination .page-link:hover {
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: transparent !important;
+}
+
+.pagination .page-link.active {
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    font-weight: 600;
+    border-color: transparent !important;
+}
+
+.pagination-info {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+/* Forzar visibilidad en todos los estados */
+.page-link:not(.active) {
+    background-color: #ffffff !important;
+    color: var(--primary-color) !important;
+    border: 2px solid var(--primary-color) !important;
+}
+
+/* Asegurar que los botones sean siempre visibles */
+.pagination .page-item {
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+.pagination-btn {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+</style>
+
+<script>
+let currentPage = 1;
+const totalPages = {{ total_pages }};
+
+// Función para mostrar una página específica
+function showPage(pageNum) {
+    // Ocultar todas las páginas
+    document.querySelectorAll('.receipt-page').forEach(page => {
+        page.style.display = 'none';
+    });
+    
+    // Mostrar la página seleccionada
+    const targetPage = document.getElementById('page' + pageNum);
+    if (targetPage) {
+        targetPage.style.display = 'block';
+    }
+    
+    currentPage = pageNum;
+    
+    // Actualizar botones de paginación
+    document.querySelectorAll('.pagination-btn').forEach(btn => {
+        const btnPage = parseInt(btn.getAttribute('data-page'));
+        btn.classList.toggle('active', btnPage === pageNum);
+        
+        // Asegurar que el botón sea visible
+        btn.style.display = 'block';
+        btn.style.visibility = 'visible';
+        btn.style.opacity = '1';
+    });
+    
+    // Actualizar indicador de página actual
+    const currentPageSpan = document.getElementById('currentPage');
+    if (currentPageSpan) {
+        currentPageSpan.textContent = pageNum;
+    }
+}
+
+// Función para imprimir todas las páginas
+function printAllPages() {
+    // Mostrar todas las páginas para impresión
+    document.querySelectorAll('.receipt-page').forEach(page => {
+        page.style.display = 'block';
+    });
+    
+    window.print();
+    
+    // Restaurar vista de página única después de imprimir
+    setTimeout(() => {
+        showPage(currentPage);
+    }, 1000);
+}
+
+// Función para formatear números
+function formatNumber(number, decimals = 2) {
+    return new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    }).format(number);
+}
+
+// Función para cambiar a USD
+function mostrarUsd() {
+    document.querySelectorAll('.price-usd').forEach(el => el.style.display = 'inline');
+    document.querySelectorAll('.price-bs').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.currency-label').forEach(el => el.textContent = 'DÓLARES');
+    document.getElementById('btnUsd').classList.add('active');
+    document.getElementById('btnBs').classList.remove('active');
+}
+
+// Función para cambiar a BS
+function mostrarBs() {
+    document.querySelectorAll('.price-usd').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.price-bs').forEach(el => el.style.display = 'inline');
+    document.querySelectorAll('.currency-label').forEach(el => el.textContent = 'BOLÍVARES');
+    document.getElementById('btnUsd').classList.remove('active');
+    document.getElementById('btnBs').classList.add('active');
+}
+
+// Función para manejar la actualización de tasa
+function setupTasaHandlers() {
+    const btnGuardarTasa = document.getElementById('btnGuardarTasa');
+    
+    if (btnGuardarTasa) {
+        btnGuardarTasa.addEventListener('click', function() {
+            const nuevaTasaInput = document.getElementById('nuevaTasa');
+            const descripcionInput = document.getElementById('descripcionTasa');
+            
+            if (!nuevaTasaInput.value.trim()) {
+                alert('Por favor ingrese una tasa de cambio');
+                nuevaTasaInput.focus();
+                return;
+            }
+            
+            const nuevaTasa = parseFloat(nuevaTasaInput.value);
+            const descripcion = descripcionInput.value.trim();
+            
+            if (isNaN(nuevaTasa) || nuevaTasa <= 0) {
+                alert('Por favor ingrese una tasa válida mayor a cero');
+                nuevaTasaInput.focus();
+                return;
+            }
+            
+            const originalHtml = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+            this.disabled = true;
+            
+            fetch('/actualizar_tasa_manual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tasa: nuevaTasa,
+                    descripcion: descripcion || 'Tasa actualizada manualmente'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tasaCambioSpan = document.getElementById('tasaCambio');
+                    if (tasaCambioSpan) {
+                        tasaCambioSpan.textContent = `1 USD = ${formatNumber(data.tasa)} BS`;
+                    }
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('tasaCambioModal'));
+                    if (modal) modal.hide();
+                    // Recargar después de 1 segundo
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert('Error: ' + (data.message || 'Error desconocido'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al guardar la tasa: ' + error.message);
+            })
+            .finally(() => {
+                this.innerHTML = originalHtml;
+                this.disabled = false;
+            });
+        });
+    }
+}
+
+// Inicialización cuando el DOM está cargado
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar botones de moneda
+    const btnUsd = document.getElementById('btnUsd');
+    const btnBs = document.getElementById('btnBs');
+    
+    if (btnUsd && btnBs) {
+        btnUsd.addEventListener('click', mostrarUsd);
+        btnBs.addEventListener('click', mostrarBs);
+    }
+    
+    // Configurar handlers de tasa
+    setupTasaHandlers();
+    
+    // Inicializar paginación si hay múltiples páginas
+    if (totalPages > 1) {
+        showPage(1);
+        
+        // Asegurar que los botones de paginación sean visibles
+        setTimeout(() => {
+            document.querySelectorAll('.pagination-btn').forEach(btn => {
+                btn.style.display = 'block';
+                btn.style.visibility = 'visible';
+                btn.style.opacity = '1';
+            });
+        }, 100);
+    }
+    
+    // Inicializar con BS como predeterminado
+    mostrarBs();
+});
+</script>
+{% endblock %}

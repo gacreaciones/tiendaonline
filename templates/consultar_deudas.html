@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Consultar Facturas - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title mb-0">Consulta de Facturas</h2>
+        <a href="{{ url_for('registrar_deuda') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Nueva Factura
+        </a>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4" data-aos="fade-up">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Estado</label>
+                    <select name="estado" class="form-select">
+                        <option value="todos" {% if estado_filtro == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="pagada" {% if estado_filtro == 'pagada' %}selected{% endif %}>Pagada</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Buscar (cédula, nombre, ID)</label>
+                    <input type="text" name="busqueda" class="form-control" value="{{ busqueda_filtro }}" placeholder="Buscar por cédula, nombre o ID">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{{ url_for('consultar_deudas') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card" data-aos="fade-up">
+        <div class="card-body">
+            {% if deudas %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Saldo Pendiente</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for deuda in deudas %}
+                        <tr>
+                            <td><strong>#{{ deuda.id }}</strong></td>
+                            <td>
+                                <div>
+                                    <strong>{{ deuda.cliente_nombre }}</strong><br>
+                                    <small class="text-muted">{{ deuda.cliente_cedula }}</small>
+                                </div>
+                            </td>
+                            <td>{{ deuda.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-success fw-bold">${{ "%.2f"|format(deuda.total) }}</td>
+                            <td class="{% if deuda.saldo_pendiente <= 0 %}text-success{% else %}text-warning{% endif %} fw-bold">
+                                ${{ "%.2f"|format(deuda.saldo_pendiente) }}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if deuda.estado == 'pendiente' %}warning{% elif deuda.estado == 'pagada' %}success{% else %}secondary{% endif %}">
+                                    {{ deuda.estado.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="verDetalleDeuda({{ deuda.id }})">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    {% if deuda.saldo_pendiente > 0 %}
+                                    <button class="btn btn-outline-success" onclick="registrarPago({{ deuda.id }}, '{{ deuda.cliente_nombre }}', {{ deuda.saldo_pendiente }}, '{{ deuda.cliente_cedula }}', '{{ deuda.fecha.strftime('%d/%m/%Y') }}')">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-file-earmark-text display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">No hay facturas registradas</h4>
+                <p class="text-muted">Las facturas aparecerán aquí cuando se registren</p>
+                <a href="{{ url_for('registrar_deuda') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Registrar Primera Factura
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function verDetalleDeuda(deudaId) {
+    window.location.href = `/detalle_deuda/${deudaId}`;
+}
+
+function registrarPago(deudaId, clienteNombre, saldoPendiente, clienteCedula, fechaDeuda) {
+    // Actualizar información del cliente en el modal
+    document.getElementById('clienteNombre').textContent = clienteNombre;
+    document.getElementById('clienteCedula').textContent = clienteCedula;
+    document.getElementById('fechaDeuda').textContent = fechaDeuda;
+    document.getElementById('saldoPendiente').textContent = `$${saldoPendiente.toFixed(2)}`;
+    
+    // Guardar ID de la deuda en el formulario
+    document.getElementById('pagoForm').dataset.deudaId = deudaId;
+    
+    // Configurar el máximo permitido en el input
+    document.getElementById('montoPago').max = saldoPendiente;
+    document.getElementById('montoPago').value = '';
+    document.getElementById('montoHelp').textContent = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('pagoParcialModal'));
+    modal.show();
+}
+
+// Función para manejar el envío del formulario
+function handlePagoSubmit() {
+    const form = document.getElementById('pagoForm');
+    const deudaId = form.dataset.deudaId;
+    const formData = new FormData(form);
+    
+    // Validación básica
+    const monto = parseFloat(formData.get('monto'));
+    if (monto <= 0 || isNaN(monto)) {
+        showToast('El monto debe ser mayor a cero', 'error');
+        return;
+    }
+    
+    // Obtener saldo pendiente para validación adicional
+    const saldoPendiente = parseFloat(document.getElementById('saldoPendiente').textContent.replace('$', ''));
+    
+    // Confirmar si el usuario quiere pagar más del saldo
+    if (monto > saldoPendiente) {
+        if (!confirm(`Está intentando pagar $${monto.toFixed(2)} pero el saldo pendiente es $${saldoPendiente.toFixed(2)}. ¿Desea continuar? El monto se ajustará automáticamente.`)) {
+            return;
+        }
+    }
+    
+    fetch(`/registrar_pago_parcial/${deudaId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('pagoParcialModal')).hide();
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.message || 'Error al registrar el pago', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error al registrar el pago: ' + error.message, 'error');
+    });
+}
+
+// Validación en tiempo real del monto
+function setupMontoValidation() {
+    const montoInput = document.getElementById('montoPago');
+    if (montoInput) {
+        montoInput.addEventListener('input', function() {
+            let monto = parseFloat(this.value) || 0;
+            
+            // Prevenir valores negativos
+            if (monto < 0) {
+                this.value = '';
+                monto = 0;
+            }
+            
+            const saldoPendiente = parseFloat(document.getElementById('saldoPendiente').textContent.replace('$', ''));
+            const montoHelp = document.getElementById('montoHelp');
+            
+            if (monto > saldoPendiente) {
+                montoHelp.textContent = `ℹ️ Se ajustará al saldo exacto ($${saldoPendiente.toFixed(2)})`;
+                montoHelp.className = 'form-text text-info';
+            } else {
+                montoHelp.textContent = '';
+                montoHelp.className = 'form-text';
+            }
+        });
+    }
+}
+
+// Inicializar cuando el DOM esté completamente cargado
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar event listener de forma segura
+    const savePagoBtn = document.getElementById('savePago');
+    if (savePagoBtn) {
+        savePagoBtn.addEventListener('click', handlePagoSubmit);
+    }
+    
+    // Configurar validación de monto
+    setupMontoValidation();
+    
+    // También agregar event listener al formulario para enter
+    const pagoForm = document.getElementById('pagoForm');
+    if (pagoForm) {
+        pagoForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handlePagoSubmit();
+        });
+    }
+});
+</script>
+
+<!-- Modal de pago (debe estar en el mismo archivo) -->
+<div class="modal fade" id="pagoParcialModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-cash-coin me-2"></i>Registrar Pago
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="pagoForm">
+                <div class="modal-body">
+                    <!-- Información del cliente -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title mb-3">Información de la Factura</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Cliente:</small>
+                                    <p class="mb-1 fw-bold" id="clienteNombre"></p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Cédula:</small>
+                                    <p class="mb-1 fw-bold" id="clienteCedula"></p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Fecha:</small>
+                                    <p class="mb-1 fw-bold" id="fechaDeuda"></p>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Saldo pendiente:</small>
+                                    <p class="mb-1 fw-bold text-warning" id="saldoPendiente"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campo para el monto -->
+                    <div class="mb-3">
+                        <label class="form-label">Monto del pago (USD)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" class="form-control" name="monto" required min="0.01" id="montoPago">
+                        </div>
+                        <div class="form-text" id="montoHelp"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" id="savePago">
+                        <i class="bi bi-check me-1"></i>Registrar Pago
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

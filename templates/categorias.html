@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Categorías - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-title mb-0">Gestión de Categorías</h2>
+        <button class="btn btn-primary" onclick="openCategoryModal()">
+            <i class="bi bi-plus-circle me-2"></i>Nueva Categoría
+        </button>
+    </div>
+
+    <!-- Barra de búsqueda -->
+    <div class="card mb-4" data-aos="fade-up">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" id="searchCategoryInput" class="form-control" 
+                               placeholder="Buscar categorías por nombre o descripción..."
+                               onkeyup="buscarCategorias()">
+                        <button class="btn btn-outline-primary" type="button" onclick="buscarCategorias()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted" id="categoryCount">{{ categorias|length }} categorías encontradas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" data-aos="fade-up">
+        <div class="card-body">
+            {% if categorias %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="categoriasTable">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Productos</th>
+                            <th>Estado</th>
+                            <th>Fecha Creación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriasTableBody">
+                        {% for categoria in categorias %}
+                        <tr class="category-row">
+                            <td class="fw-semibold category-nombre">{{ categoria.nombre }}</td>
+                            <td class="category-descripcion">{{ categoria.descripcion or '-' }}</td>
+                            <td class="category-productos">
+                                <span class="badge bg-info">{{ categoria.productos|length }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if categoria.activo %}success{% else %}secondary{% endif %}">
+                                    {{ 'Activa' if categoria.activo else 'Inactiva' }}
+                                </span>
+                            </td>
+                            <td class="category-fecha">{{ categoria.fecha_creacion.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" 
+                                            onclick="editCategory({{ categoria.id }}, '{{ categoria.nombre }}', '{{ categoria.descripcion or '' }}', {{ categoria.activo|lower }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    {% if categoria.productos|length == 0 %}
+                                    <form method="POST" action="{{ url_for('eliminar_categoria', id=categoria.id) }}" class="d-inline" 
+                                          onsubmit="return confirm('¿Estás seguro de eliminar esta categoría?')">
+                                        {{ form.hidden_tag() }}
+                                        <button type="submit" class="btn btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-outline-danger" disabled title="No se puede eliminar: tiene productos asociados">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-tags display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">No hay categorías registradas</h4>
+                <p class="text-muted">Comienza agregando tu primera categoría</p>
+                <button class="btn btn-primary" onclick="openCategoryModal()">
+                    <i class="bi bi-plus-circle me-2"></i>Registrar Categoría
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="categoryModalTitle">
+                    <i class="bi bi-tags me-2"></i>Nueva Categoría
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="categoryForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="3" 
+                                  placeholder="Descripción opcional de la categoría"></textarea>
+                    </div>
+                    <div class="mb-3" id="activoField" style="display: none;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="activo" id="activo" checked>
+                            <label class="form-check-label" for="activo">
+                                Categoría activa
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function buscarCategorias() {
+    const query = document.getElementById('searchCategoryInput').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.category-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const nombre = row.querySelector('.category-nombre').textContent.toLowerCase();
+        const descripcion = row.querySelector('.category-descripcion').textContent.toLowerCase();
+        
+        if (nombre.includes(query) || descripcion.includes(query)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('categoryCount').textContent = `${visibleCount} categorías encontradas`;
+}
+
+let isEditingCategory = false;
+let editingCategoryId = null;
+
+function openCategoryModal() {
+    isEditingCategory = false;
+    editingCategoryId = null;
+    document.getElementById('categoryModalTitle').innerHTML = '<i class="bi bi-tags me-2"></i>Nueva Categoría';
+    document.getElementById('categoryForm').reset();
+    document.getElementById('activoField').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('categoryModal')).show();
+}
+
+function editCategory(id, nombre, descripcion, activo) {
+    isEditingCategory = true;
+    editingCategoryId = id;
+    document.getElementById('categoryModalTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Editar Categoría';
+    
+    const form = document.getElementById('categoryForm');
+    form.nombre.value = nombre;
+    form.descripcion.value = descripcion;
+    form.activo.checked = activo;
+    
+    document.getElementById('activoField').style.display = 'block';
+    new bootstrap.Modal(document.getElementById('categoryModal')).show();
+}
+
+document.getElementById('categoryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const url = isEditingCategory ? `/editar_categoria/${editingCategoryId}` : '/registrar_categoria';
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+            location.reload();
+        } else {
+            alert(data.message || 'Error al guardar la categoría');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al guardar la categoría');
+    });
+});
+
+// Inicializar búsqueda al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('searchCategoryInput').focus();
+});
+</script>
+{% endblock %}

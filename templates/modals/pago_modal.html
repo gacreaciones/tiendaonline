@@ -1,0 +1,49 @@
+<div class="modal fade" id="pagoParcialModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-cash-coin me-2"></i>Registrar Pago Parcial
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="pagoForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Deuda seleccionada:</strong> <span id="deudaInfo"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Monto del pago (USD)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" step="0.01" class="form-control" name="monto" required min="0.01" id="montoPago">
+                        </div>
+                        <div class="form-text" id="montoHelp"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Método de pago</label>
+                        <select class="form-select" name="metodo_pago">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción (opcional)</label>
+                        <textarea class="form-control" name="descripcion" rows="2" placeholder="Notas adicionales sobre el pago"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" id="savePago">
+                        <i class="bi bi-check me-1"></i>Registrar Pago
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

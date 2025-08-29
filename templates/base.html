@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Gestión Empresarial{% endblock %}</title>
+    <meta name="csrf-token" content="{{ config.SECRET_KEY }}">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+        <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/es.js"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            
+            --primary-color: #667eea;
+            --primary-dark: #5a67d8;
+            --secondary-color: #f8fafc;
+            --accent-color: #4facfe;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            
+            --text-primary: #1a202c;
+            --text-secondary: #718096;
+            --text-muted: #a0aec0;
+            
+            --bg-primary: #ffffff;
+            --bg-secondary: #f7fafc;
+            --bg-tertiary: #edf2f7;
+            
+            --border-color: #e2e8f0;
+            --border-light: #f1f5f9;
+            
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-weight: 400;
+        }
+        
+        /* Navbar Styles */
+        .navbar {
+            background: var(--bg-primary);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            padding: 1rem 0;
+        }
+        
+        .navbar-brand {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            color: var(--text-secondary) !important;
+            transition: all 0.3s ease;
+            border-radius: var(--radius-md);
+            padding: 0.5rem 1rem !important;
+            margin: 0 0.25rem;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary-color) !important;
+            background: var(--bg-tertiary);
+            transform: translateY(-1px);
+        }
+        
+        .nav-link.active {
+            color: var(--primary-color) !important;
+            background: var(--bg-tertiary);
+        }
+        
+        /* Card Styles */
+        .card {
+            border: none;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .card-header {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+            font-weight: 600;
+            padding: 1.5rem;
+            border: none;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Button Styles */
+        .btn {
+            font-weight: 400;
+            border-radius: var(--radius-lg);
+            padding: 0.75rem 0.75rem;
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success-gradient);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning-gradient);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger-gradient);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+        
+        .btn-info {
+            background: var(--success-gradient);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+        
+        /* Form Styles */
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 0.75rem 0.75rem;
+            transition: all 0.3s ease;
+            background: var(--bg-primary);
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            background: var(--bg-primary);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Table Styles */
+        .table {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            background: var(--bg-primary);
+        }
+        
+        .table th {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+            padding: 1rem;
+            border: none;
+        }
+        
+        .table td {
+            padding: 1rem;
+            border-color: var(--border-light);
+            vertical-align: middle;
+        }
+        
+        .table tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+        
+        /* Badge Styles */
+        .badge {
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-xl);
+            font-size: 0.875rem;
+        }
+        
+        /* Modal Styles */
+        .modal-content {
+            border: none;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-2xl);
+        }
+        
+        .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            border: none;
+            padding: 1.5rem;
+        }
+        
+        /* Alert Styles */
+        .alert {
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+            color: var(--success-color);
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+            color: var(--danger-color);
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+            color: var(--warning-color);
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+            color: var(--info-color);
+            border-left: 4px solid var(--info-color);
+        }
+        
+        /* Dropdown Styles */
+        .dropdown-menu {
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem;
+        }
+        
+        .dropdown-item {
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--primary-color);
+        }
+        
+        /* User Avatar */
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        /* Page Header */
+        .page-header {
+            margin-bottom: 2rem;
+            padding: 2rem 0;
+        }
+        
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            font-weight: 400;
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-gradient);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-card.products::before { background: var(--danger-gradient); }
+        .stat-card.clients::before { background: var(--success-gradient); }
+        .stat-card.inventory::before { background: var(--warning-gradient); }
+        .stat-card.revenue::before { background: var(--primary-gradient); }
+        
+        /* Footer */
+        .footer {
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-light);
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+            }
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+                /* Tema Azul */
+        body[data-theme="blue"] {
+            --primary-gradient: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+            --primary-color: #d7ebf0;
+            --primary-dark: #0e7490;
+            --secondary-color: #f59e0b;
+            --accent-color: #facc15;
+        }
+
+        /* Tema Verde */
+        body[data-theme="green"] {
+            --primary-gradient: linear-gradient(135deg, #079642 0%, #80e4c8 100%);
+            --primary-color: #f6f7f6;
+            --primary-dark: #047857;
+            --secondary-color: #f59e0b;
+            --accent-color: #facc15;
+        }
+
+        /* Tema Púrpura Elegante */
+        body[data-theme="purple"] {
+            --primary-gradient: linear-gradient(135deg, #ba72d6 0%, #7d27a1 100%);
+            --primary-color: #ffffff;
+            --primary-dark: #8e44ad;
+            --secondary-color: #5543b8;
+            --accent-color: #d2f1c5;
+        }
+
+        /* Tema Verde Azulado */
+        body[data-theme="teal"] {
+            --primary-gradient: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+            --primary-color: #b7dbd4;
+            --primary-dark: #16a085;
+            --secondary-color: #e67e22;
+            --accent-color: #f39c12;
+        }
+
+        /* Tema Coral Vibrante */
+        body[data-theme="coral"] {
+            --primary-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            --primary-color: #f7e2e2;
+            --primary-dark: #ee5a52;
+            --secondary-color: #00cec9;
+            --accent-color: #fdcb6e;
+        }
+
+        /* Tema Dorado Premium */
+        body[data-theme="gold"] {
+            --primary-gradient: linear-gradient(135deg, #f5a72b 0%, #e46009 100%);
+            --primary-color: #f39c12;
+            --primary-dark: #d35400;
+            --secondary-color: #3498db;
+            --accent-color: #9b59b6;
+        }
+
+
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                {% if empresa and empresa.logo_url %}
+                <img src="{{ empresa.logo_url }}" alt="{{ empresa.nombre }}" class="me-2" style="width: 40px; height: 40px; border-radius: 50%;">
+                {% endif %}
+                <span>{{ empresa.nombre if empresa and empresa.nombre else 'Sistema de Gestión' }}</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-house me-1"></i> Inicio
+                        </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_clientes') }}">
+                            <i class="bi bi-people me-1"></i> Clientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_productos') }}">
+                            <i class="bi bi-box-seam me-1"></i> Productos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('consultar_deudas') }}">
+                            <i class="bi bi-cash-coin me-1"></i> Facturación
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_pedidos') }}">
+                            <i class="bi bi-cart me-1"></i> Pedidos
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Cart Icon -->
+                    <a href="{{ url_for('view_cart') }}" class="btn btn-outline-primary me-3 position-relative">
+                        <i class="bi bi-cart3"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartBadge">
+                            0
+                        </span>
+                    </a>
+                    
+                    <!-- User Dropdown -->
+                    <div class="dropdown">
+                        <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown">
+                            <div class="user-avatar me-2">
+                                {% if current_user.is_authenticated %}
+                                    {{ current_user.username[0]|upper }}
+                                {% else %}
+                                    <i class="bi bi-person"></i>
+                                {% endif %}
+                            </div>
+                            <span class="fw-medium">
+                                {% if current_user.is_authenticated %}
+                                    {{ current_user.username }}
+                                {% else %}
+                                    Invitado
+                                {% endif %}
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% if current_user.is_authenticated %}
+                                <li><a class="dropdown-item" href="{{ url_for('mi_cuenta') }}">
+                                    <i class="bi bi-person me-2"></i> Mi Cuenta
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('change_password') }}">
+                                    <i class="bi bi-lock me-2"></i> Cambiar Contraseña
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+                                </a></li>
+                            {% else %}
+                                <li><a class="dropdown-item" href="{{ url_for('login') }}">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i> Iniciar Sesión
+                                </a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container mb-4">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" data-aos="fade-down">
+                            <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-triangle{% elif category == 'warning' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="fw-bold mb-2">{{ empresa.nombre if empresa and empresa.nombre else 'Sistema de Gestión' }}</h5>
+                    {% if empresa %}
+                    <p class="text-muted mb-1">{{ empresa.direccion }}</p>
+                    <p class="text-muted">{{ empresa.telefono }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="social-links mb-3">
+                        {% if empresa and empresa.facebook %}
+                        <a href="{{ empresa.facebook }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        {% endif %}
+                        {% if empresa and empresa.instagram %}
+                        <a href="{{ empresa.instagram }}" target="_blank" class="btn btn-outline-danger btn-sm me-2">
+                            <i class="bi bi-instagram"></i>
+                        </a>
+                        {% endif %}
+                        {% if empresa and empresa.twitter %}
+                        <a href="{{ empresa.twitter }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        {% endif %}
+                        {% if empresa and empresa.telefono %}
+                        <a href="https://wa.me/{{ empresa.telefono }}" target="_blank" class="btn btn-success btn-sm">
+                            <i class="bi bi-whatsapp"></i> WhatsApp
+                        </a>
+                        {% endif %}
+                        
+                    </div>
+                    <p class="text-muted small mb-0">© 2025 Sistema de Gestión. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global Modals -->
+    {% include 'modals/cliente_modal.html' %}
+    {% include 'modals/producto_modal.html' %}
+    {% include 'modals/pago_modal.html' %}
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="globalToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>Notificación
+                </strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true
+        });
+        
+        // Global Toast Function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('globalToast');
+            const toastBody = toast.querySelector('.toast-body');
+            const toastHeader = toast.querySelector('.toast-header strong');
+            
+            const icons = {
+                success: 'check-circle-fill text-success',
+                error: 'exclamation-triangle-fill text-danger',
+                warning: 'exclamation-circle-fill text-warning',
+                info: 'info-circle-fill text-info'
+            };
+            
+            toastHeader.innerHTML = `<i class="bi bi-${icons[type]} me-2"></i>Notificación`;
+            toastBody.textContent = message;
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+        
+        // Update Cart Count
+        function updateCartCount() {
+            fetch("{{ url_for('cart_count') }}")
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('cartBadge');
+                    badge.textContent = data.count;
+                    badge.style.display = data.count > 0 ? 'inline' : 'none';
+                })
+                .catch(error => console.error('Error updating cart count:', error));
+        }
+        
+        // Initialize cart count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartCount();
+        });
+
+        // Aplicar tema al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const tema = "{{ configuracion.tema }}";
+            if (tema && tema !== 'default') {
+                document.body.setAttribute('data-theme', tema);
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

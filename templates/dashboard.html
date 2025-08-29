@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ super() }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .period-selector {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .sales-card {
+        background: var(--primary-gradient);
+        color: white;
+        border-radius: var(--radius-xl);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .sales-change {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+    
+    .sales-change.positive {
+        color: #4ade80 !important;
+    }
+    
+    .sales-change.negative {
+        color: #f87171 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card" data-aos="fade-up">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 mb-0">
+                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard Administrativo
+                            </h1>
+                            <p class="text-muted mb-0">Panel de control y estadísticas</p>
+                        </div>
+                        <div class="period-selector">
+                            <select id="periodFilter" class="form-select">
+                                <option value="today">Hoy</option>
+                                <option value="yesterday">Ayer</option>
+                                <option value="week">Esta semana</option>
+                                <option value="last_week">Semana pasada</option>
+                                <option value="month" selected>Este mes</option>
+                                <option value="last_month">Mes pasado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Card (Única tarjeta que cambia) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="sales-card" data-aos="fade-up">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 id="salesPeriodTitle" class="card-title text-white">Ventas de Este Mes</h5>
+                        <h2 id="salesAmount" class="display-4 fw-bold mb-0">$0.00</h2>
+                        <p id="salesChange" class="sales-change mb-0">Cargando...</p>
+                    </div>
+                    <div class="display-1 opacity-25">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <small id="salesDetails" class="opacity-75">Pedidos completados: 0</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Pending Orders -->
+        <div class="col-lg-8">
+            <!-- Pending Orders -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-exclamation-circle me-2 text-warning"></i>Pedidos Pendientes
+                                </h5>
+                                <span class="badge bg-warning">{{ pedidos_pendientes|length }} pendientes</span>
+                            </div>
+                            {% if pedidos_pendientes %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Total</th>
+                                            <th>Fecha</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pedido in pedidos_pendientes %}
+                                        <tr>
+                                            <td><strong>#{{ pedido.id }}</strong></td>
+                                            <td>{{ pedido.cliente_nombre }}</td>
+                                            <td class="text-success fw-bold">${{ "%.2f"|format(pedido.total) }}</td>
+                                            <td>{{ pedido.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                                            <td>
+                                                <a href="{{ url_for('ver_pedido', pedido_id=pedido.id) }}" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-check"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <h5 class="text-success">No hay pedidos pendientes</h5>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Quick Stats -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="fas fa-chart-pie me-2"></i>Resumen General
+                            </h5>
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 p-2 rounded me-2">
+                                            <i class="bi bi-boxes text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5">{{ total_stock }}</div>
+                                            <small class="text-muted">Unidades en Stock</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-success bg-opacity-10 p-2 rounded me-2">
+                                            <i class="bi bi-cart4 text-success"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5">{{ total_orders }}</div>
+                                            <small class="text-muted">Pedidos Totales</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-info bg-opacity-10 p-2 rounded me-2">
+                                            <i class="bi bi-people text-info"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5">{{ total_customers }}</div>
+                                            <small class="text-muted">Clientes</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-warning bg-opacity-10 p-2 rounded me-2">
+                                            <i class="bi bi-cash-coin text-warning"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold fs-5">{{ deudas_pendientes }}</div>
+                                            <small class="text-muted">Deudas Pendientes</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para manejar el filtro de período y cargar datos reales -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const periodFilter = document.getElementById('periodFilter');
+    const salesPeriodTitle = document.getElementById('salesPeriodTitle');
+    const salesAmount = document.getElementById('salesAmount');
+    const salesChange = document.getElementById('salesChange');
+    const salesDetails = document.getElementById('salesDetails');
+    
+    // Mapeo de períodos a nombres legibles
+    const periodNames = {
+        'today': 'Hoy',
+        'yesterday': 'Ayer', 
+        'week': 'Esta Semana',
+        'last_week': 'Semana Pasada',
+        'month': 'Este Mes',
+        'last_month': 'Mes Pasado'
+    };
+    
+    // Cargar datos iniciales
+    loadSalesData('month');
+    
+    // Manejar cambio de período
+    periodFilter.addEventListener('change', function() {
+        loadSalesData(this.value);
+    });
+    
+    function loadSalesData(period) {
+        // Mostrar estado de carga
+        salesAmount.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        salesChange.textContent = 'Cargando...';
+        salesDetails.textContent = 'Cargando detalles...';
+        
+        // Hacer petición al servidor
+        fetch(`/api/ventas/resumen?periodo=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Actualizar UI con los datos reales
+                salesPeriodTitle.textContent = `Ventas de ${periodNames[period]}`;
+                salesAmount.textContent = `$${data.monto.toFixed(2)}`;
+                salesDetails.textContent = `Pedidos completados: ${data.pedidos}`;
+                
+                // Mostrar cambio porcentual si está disponible
+                if (data.cambio !== undefined) {
+                    const changeClass = data.cambio >= 0 ? 'positive' : 'negative';
+                    const changeSymbol = data.cambio >= 0 ? '+' : '';
+                    salesChange.innerHTML = `<span class="${changeClass}">${changeSymbol}${data.cambio.toFixed(1)}% vs período anterior</span>`;
+                } else {
+                    salesChange.textContent = 'Sin datos comparativos';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sales data:', error);
+                salesAmount.textContent = '$0.00';
+                salesChange.textContent = 'Error al cargar datos';
+                salesDetails.textContent = 'Intente nuevamente';
+            });
+    }
+});
+</script>
+{% endblock %}

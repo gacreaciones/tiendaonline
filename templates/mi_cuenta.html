@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Cuenta - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Pestañas -->
+            <ul class="nav nav-pills mb-4" id="myTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="empresa-tab" data-bs-toggle="tab" data-bs-target="#empresa" type="button" role="tab">
+                        <i class="bi bi-building me-2"></i>Información de la Empresa
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="configuracion-tab" data-bs-toggle="tab" data-bs-target="#configuracion" type="button" role="tab">
+                        <i class="bi bi-gear me-2"></i>Configuración del Sitio
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="myTabContent">
+                <!-- Pestaña Empresa -->
+                <div class="tab-pane fade show active" id="empresa" role="tabpanel">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-header">
+                            <h4 class="mb-0">
+                                <i class="bi bi-building me-2"></i>Información de la Empresa
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                {{ form.hidden_tag() }}
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.nombre.label(class="form-label") }}
+                                            {{ form.nombre(class="form-control") }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            {{ form.telefono.label(class="form-label") }}
+                                            {{ form.telefono(class="form-control") }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.direccion.label(class="form-label") }}
+                                    {{ form.direccion(class="form-control") }}
+                                </div>
+
+                                <div class="mb-3">
+                                    {{ form.rif.label(class="form-label") }}
+                                    {{ form.rif(class="form-control") }}
+                                    <div class="form-text">RIF de la empresa (J-123456789)</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    {{ form.logo_url.label(class="form-label") }}
+                                    {{ form.logo_url(class="form-control") }}
+                                    <div class="form-text">URL de la imagen del logo de tu empresa</div>
+                                </div>
+                                
+                                <h5 class="mb-3 mt-4">Redes Sociales</h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            {{ form.facebook.label(class="form-label") }}
+                                            {{ form.facebook(class="form-control") }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            {{ form.instagram.label(class="form-label") }}
+                                            {{ form.instagram(class="form-control") }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            {{ form.twitter.label(class="form-label") }}
+                                            {{ form.twitter(class="form-control") }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    {{ form.submit(class="btn btn-primary btn-lg") }}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestaña Configuración -->
+                <div class="tab-pane fade" id="configuracion" role="tabpanel">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-header">
+                            <h4 class="mb-0">
+                                <i class="bi bi-gear me-2"></i>Configuración del Sitio
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('actualizar_configuracion') }}">
+                                {{ config_form.hidden_tag() }}
+                                
+                                <div class="mb-4">
+                                    <h5 class="mb-3">Personalización del Hero Section</h5>
+                                    
+                                    <div class="mb-3">
+                                        {{ config_form.hero_titulo.label(class="form-label") }}
+                                        {{ config_form.hero_titulo(class="form-control") }}
+                                        <div class="form-text">Título principal que aparecerá en la página de inicio</div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        {{ config_form.hero_mensaje.label(class="form-label") }}
+                                        {{ config_form.hero_mensaje(class="form-control", rows="3") }}
+                                        <div class="form-text">Mensaje descriptivo que aparecerá debajo del título</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <h5 class="mb-3">Apariencia del Sitio</h5>
+                                    
+                                    <div class="mb-3">
+                                        {{ config_form.tema.label(class="form-label") }}
+                                        {{ config_form.tema(class="form-select") }}
+                                        <div class="form-text">Selecciona el tema visual para tu tienda</div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="default">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #9b59b6;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #e67e22;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>default</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="blue">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #0891b2;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #f59e0b;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>Azul</small>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="green">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #059669;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #f59e0b;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>Verde</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="purple">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #9b59b6;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #e67e22;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>Púrpura Elegante</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="teal">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #1abc9c;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #e67e22;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>Verde Azulado</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="coral">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #ff6b6b;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #00cec9;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>Coral Vibrante</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 mb-3">
+                                            <div class="card theme-preview" data-theme="gold">
+                                                <div class="card-body text-center p-2">
+                                                    <div class="theme-colors mb-2">
+                                                        <div class="d-flex">
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 3px 0 0 3px; background: #f39c12;"></div>
+                                                            <div class="flex-fill" style="height: 20px; border-radius: 0 3px 3px 0; background: #3498db;"></div>
+                                                        </div>
+                                                    </div>
+                                                    <small>Dorado Premium</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-save me-2"></i>Guardar Configuración
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.theme-preview {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-preview:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.theme-preview.active {
+    border: 2px solid var(--primary);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Seleccionar tema al hacer clic en la preview
+    document.querySelectorAll('.theme-preview').forEach(preview => {
+        preview.addEventListener('click', function() {
+            const theme = this.dataset.theme;
+            document.querySelector('#tema').value = theme;
+            
+            // Marcar como activo
+            document.querySelectorAll('.theme-preview').forEach(p => p.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Marcar el tema actual como activo
+    const currentTheme = "{{ configuracion.tema }}";
+    if (currentTheme) {
+        const currentPreview = document.querySelector(`.theme-preview[data-theme="${currentTheme}"]`);
+        if (currentPreview) {
+            currentPreview.classList.add('active');
+        }
+    }
+});
+</script>
+{% endblock %}
