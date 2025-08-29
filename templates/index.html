@@ -28,19 +28,19 @@
     <div class="row">
         <!-- Products Section -->
         <div class="col-12 col-lg-9 order-2 order-lg-1" id="productos">
-            <!-- Category Filter -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-4 gap-2" data-aos="fade-up">
+            <!-- Category Filter - MODIFICADO -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center mb-4 gap-2" data-aos="fade-up" style="position: relative; z-index: 1000;">
                 <h2 class="page-title mb-3 mb-md-0">Nuestros Productos</h2>
                 <div class="d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-center w-100 w-md-auto">
-                    <!-- Dropdown de Categorías -->
-                    <div class="dropdown" style="position: relative; z-index: 1060;">
+                    <!-- Dropdown de Categorías - MODIFICADO -->
+                    <div class="dropdown" style="position: relative;">
                         <button type="button" class="btn btn-outline-primary dropdown-toggle w-100" 
                                 data-bs-toggle="dropdown" aria-expanded="false"
                                 style="border: 2px solid var(--primary-color); font-weight: 500;">
                             <i class="bi bi-funnel me-2"></i>Categorías
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" 
-                            style="z-index: 1061; min-width: 250px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+                            style="z-index: 1001; min-width: 250px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
                             <li><a class="dropdown-item {% if categoria_actual == 'todos' %}active{% endif %}" 
                                 href="{{ url_for('index') }}"
                                 style="font-weight: 500;">
@@ -309,7 +309,7 @@
 }
 
 .dropdown-menu {
-    z-index: 1071 !important;
+    z-index: 1001 !important; /* MODIFICADO: aumentado para que esté por encima */
     border: none;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
@@ -346,19 +346,21 @@
     color: white;
 }
 
+/* MODIFICADO: Asegurar que el dropdown tenga un contexto de apilamiento adecuado */
 .dropdown {
     position: relative;
-    z-index: 1070;
 }
 
+/* MODIFICADO: Asegurar que el contenedor de productos tenga un z-index menor */
 #productos {
     position: relative;
     z-index: 1;
 }
 
+/* MODIFICADO: Asegurar que el filtro esté por encima de los productos */
 .d-flex.justify-content-between.align-items-center.mb-4 {
     position: relative;
-    
+    z-index: 100; /* Reducido para que no interfiera con el dropdown */
 }
 </style>
 
@@ -584,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (dropdownToggle && dropdownMenu) {
         dropdownToggle.addEventListener('show.bs.dropdown', function () {
-            dropdownMenu.style.zIndex = '1061';
+            dropdownMenu.style.zIndex = '1001';
             dropdownMenu.style.position = 'absolute';
         });
         
