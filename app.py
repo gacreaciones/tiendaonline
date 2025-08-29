@@ -40,29 +40,31 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'una_clave_secreta_muy_segura')
 
 # Configuración de la base de datos usando variables de Railway
-db_username = os.environ.get('MYSQLUSER', 'root')
-db_password = os.environ.get('MYSQLPASSWORD', 'lVEUoeGmLirvBLKxBPProJjHLywVvreB')
-db_host = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
-db_port = os.environ.get('MYSQLPORT', '3306')
-db_name = os.environ.get('MYSQLDATABASE', 'railway')
+# Usar MYSQL_PUBLIC_URL en lugar de MYSQL_URL para la conexión externa
+db_url = os.environ.get('MYSQL_PUBLIC_URL')
 
-# Construir la URI de la base de datos
-app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
+if db_url:
+    # Reemplazar el prefijo mysql:// por mysql+pymysql:// para usar PyMySQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace('mysql://', 'mysql+pymysql://')
+else:
+    # Configuración de respaldo
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flask_admin:daniel!123456@192.168.1.21/decomilca'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuración de conexión a base de datos con pool de conexiones y SSL
+# Configuración de conexión optimizada para Railway
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
+    'pool_size': 5,
+    'max_overflow': 10,
+    'pool_timeout': 30,
     'connect_args': {
-        'ssl': {
-            'ssl_ca': os.environ.get('SSL_CA', None),  # Si Railway proporciona un certificado CA
-        }
+        'connect_timeout': 30
     }
 }
 
 db = SQLAlchemy(app)
-
 # ============================================================================
 # FORMULARIOS WTF
 # ============================================================================
