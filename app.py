@@ -37,14 +37,28 @@ import hashlib
 
 # Configuración de la aplicación Flask
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'una_clave_secreta_muy_segura'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flask_admin:daniel!123456@192.168.1.21/decomilca'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'una_clave_secreta_muy_segura')
+
+# Configuración de la base de datos usando variables de Railway
+db_username = os.environ.get('MYSQLUSER', 'root')
+db_password = os.environ.get('MYSQLPASSWORD', 'lVEUoeGmLirvBLKxBPProJjHLywVvreB')
+db_host = os.environ.get('MYSQLHOST', 'mysql.railway.internal')
+db_port = os.environ.get('MYSQLPORT', '3306')
+db_name = os.environ.get('MYSQLDATABASE', 'railway')
+
+# Construir la URI de la base de datos
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuración de conexión a base de datos con pool de conexiones
+# Configuración de conexión a base de datos con pool de conexiones y SSL
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
+    'connect_args': {
+        'ssl': {
+            'ssl_ca': os.environ.get('SSL_CA', None),  # Si Railway proporciona un certificado CA
+        }
+    }
 }
 
 db = SQLAlchemy(app)
@@ -3294,4 +3308,5 @@ def generar_pdf_pedido(pedido_id):
 # ============================================================================
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
