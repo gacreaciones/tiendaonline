@@ -390,13 +390,6 @@
                     </tbody>
                 </table>
             </div>
-            
-            <div class="text-center mt-3">
-                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal">
-                    <i class="bi bi-plus-circle me-2"></i> Nuevo Cliente
-                </button>
-            </div>
-            
             <div class="nav-buttons">
                 <div></div>
                 <button class="btn btn-primary" id="nextToStep2" disabled>
@@ -576,42 +569,6 @@
                     </div>
                 </form>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para nuevo cliente -->
-<div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i> Nuevo Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="nuevoClienteForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre completo *</label>
-                        <input type="text" class="form-control" name="nombre" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Cédula *</label>
-                        <input type="text" class="form-control" name="cedula" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Teléfono</label>
-                        <input type="tel" class="form-control" name="telefono">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Dirección</label>
-                        <textarea class="form-control" name="direccion" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Cliente</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -1065,7 +1022,7 @@ initializeProductsData();
         let subtotal = 0;
         
         cartItems.forEach(item => {
-            subtotal += item.subtotal;
+            subtotal += (item.subtotal * 100)/116;
         });
         
         const iva = subtotal * 0.16;
@@ -1098,7 +1055,7 @@ initializeProductsData();
         let html = '';
         
         cartItems.forEach(item => {
-            subtotal += item.subtotal;
+            subtotal += (item.subtotal * 100)/116;
             html += `
                 <div class="d-flex justify-content-between mb-2">
                     <span>${item.name} x${item.quantity}</span>
@@ -1124,33 +1081,6 @@ initializeProductsData();
         $('#totalAmount').text('$' + total.toFixed(2));
     }
     
-    // Registrar nuevo cliente
-    $('#nuevoClienteForm').on('submit', function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: '{{ url_for("registrar_cliente") }}',
-            method: 'POST',
-            data: $(this).serialize(),
-            success: function(response) {
-                if (response.success) {
-                    showToast('Cliente registrado exitosamente', 'success');
-                    $('#nuevoClienteModal').modal('hide');
-                    // Recargar la página para mostrar el nuevo cliente
-                    location.reload();
-                } else {
-                    let errorMsg = 'Error al registrar el cliente';
-                    if (response.errors) {
-                        errorMsg += ': ' + Object.values(response.errors).flat().join(', ');
-                    }
-                    showToast(errorMsg, 'error');
-                }
-            },
-            error: function() {
-                showToast('Error al registrar el cliente', 'error');
-            }
-        });
-    });
   // Enviar formulario de deuda
 $('#deudaForm').on('submit', function(e) {
     e.preventDefault();
